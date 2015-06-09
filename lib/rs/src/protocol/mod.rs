@@ -16,22 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-use std;
+use std::{str, fmt};
+use std::error::Error as StdError;
 
 use transport::Transport;
-use TResult;
-use ThriftErr;
+use Result;
 
 pub mod binary_protocol;
 
 #[derive(Debug)]
 pub enum Error {
-    // Protocol version mismatch
+    /// Protocol version mismatch
     BadVersion,
-    // Sender violated the protocol, for instance, sent an unknown enum value
+    /// Sender violated the protocol, for instance, sent an unknown enum value
     ProtocolViolation,
-    // Received string cannot be converted to a UTF8 string
-    InvalidUtf8(std::str::Utf8Error),
+    /// Received string cannot be converted to a UTF8 string
+    InvalidUtf8(str::Utf8Error),
+}
+
+impl StdError for Error {
+    fn description(&self) -> &str {
+        "Thrift Protocol Error"
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+             Error::InvalidUtf8(ref e) => Some(e),
+             _ => None
+        }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl From<str::Utf8Error> for Error {
+    fn from(e: str::Utf8Error) -> Self {
+        Error::InvalidUtf8(e)
+    }
 }
 
 pub trait ProtocolFactory {

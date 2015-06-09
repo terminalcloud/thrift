@@ -1,12 +1,9 @@
-
 extern crate podio;
-extern crate bufstream;
 
-use std::io;
-use std::convert::From;
+use std::{io, fmt};
+use std::error::Error as StdError;
 
 pub use protocol::Protocol;
-pub use protocol::Error;
 pub use transport::Transport;
 
 pub mod protocol;
@@ -15,7 +12,7 @@ pub mod server;
 pub mod processor;
 
 #[derive(Debug)]
-pub enum ThriftErr {
+pub enum Error {
     /// An error occurred when reading from/writing to the underlying transport
     TransportError(io::Error),
 
@@ -27,16 +24,37 @@ pub enum ThriftErr {
     UserException,
 }
 
-impl From<io::Error> for ThriftErr {
-    fn from(err: io::Error) -> ThriftErr {
-        ThriftErr::TransportError(err)
+impl From<protocol::Error> for Error {
+    fn from(err: protocol::Error) -> Error {
+        Error::ProtocolError(err)
     }
 }
 
-impl From<protocol::Error> for ThriftErr {
-    fn from(err: protocol::Error) -> ThriftErr {
-        ThriftErr::ProtocolError(err)
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Error {
+        Error::TransportError(err)
     }
 }
 
-pub type TResult<T> = Result<T, ThriftErr>;
+impl StdError for Error {
+    fn description(&self) -> &str {
+        "Thrift Error"
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            Error::TransportError(ref err) => Some(err),
+            Error::ProtocolError(ref err) => Some(err),
+            _ => None
+        }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
