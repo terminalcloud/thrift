@@ -17,12 +17,14 @@
  * under the License.
  */
 
-use std::io::prelude::*;
+use std::io::{Read, Write};
 
-pub mod tcp_transport;
 pub mod server;
 
-pub trait Transport : Write + Read { }
+pub trait Transport: Write + Read { }
+
+impl<T: Write + Read> Transport for T { }
 
 #[cfg(test)]
 pub mod test;
+
