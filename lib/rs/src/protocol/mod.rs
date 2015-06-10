@@ -129,13 +129,13 @@ impl MessageType {
     }
 }
 
-pub trait Write {
-    fn write<P, T>(&self, iprot: &P, transport: &mut T) -> Result<()>
+pub trait Encode {
+    fn encode<P, T>(&self, &mut P, &mut T) -> Result<()>
     where P: Protocol, T: Transport;
 }
 
-pub trait Read {
-    fn read<P, T>(&mut self, iprot: &P, transport: &mut T) -> Result<()>
+pub trait Decode {
+    fn decode<P, T>(&mut self, &mut P, &mut T) -> Result<()>
     where P: Protocol, T: Transport;
 }
 
@@ -222,7 +222,7 @@ pub trait FromNum {
 }
 
 pub mod helpers {
-    use protocol::{Protocol, Type, MessageType, FromNum, Read, Write, Error};
+    use protocol::{Protocol, Type, MessageType, FromNum, Decode, Encode, Error};
     use transport::Transport;
     use Result;
 
@@ -238,19 +238,18 @@ pub mod helpers {
     pub fn send<W, T, P>(protocol: &mut P, transport: &mut T,
                          name: &str, _type: MessageType,
                          args: &W) -> Result<()>
-    where W: Write, T: Transport, P: Protocol {
+    where W: Encode, T: Transport, P: Protocol {
         let cseqid: i32 = 0;
         try!(protocol.write_message_begin(transport, name, _type, cseqid));
-        try!(args.write(protocol, transport));
+        try!(args.encode(protocol, transport));
         try!(protocol.write_message_end(transport));
-        //self.transport.write_end();
         try!(transport.flush());
         Ok(())
     }
 
     pub fn receive<R, T, P>(protocol: &mut P, transport: &mut T,
                             op: &str, result: &mut R) -> Result<()>
-    where R: Read, T: Transport, P: Protocol {
+    where R: Decode, T: Transport, P: Protocol {
         let (name, ty, id) = try!(protocol.read_message_begin(transport));
         receive_body(protocol, transport, op, result, &name, ty, id)
     }
@@ -258,7 +257,7 @@ pub mod helpers {
     pub fn receive_body<R, T, P>(protocol: &mut P, transport: &mut T, op: &str,
                                  result: &mut R, name: &str, ty: MessageType,
                                  id: i32) -> Result<()>
-    where R: Read, T: Transport, P: Protocol {
+    where R: Decode, T: Transport, P: Protocol {
         match (name, ty, id) {
             (_, MessageType::Exception, _) => {
                 println!("got exception");
@@ -274,7 +273,7 @@ pub mod helpers {
             // doesn't receive Reply messages
             (fname, _, _) => {
                 if &fname[..] == op {
-                    try!(result.read(protocol, transport));
+                    try!(result.decode(protocol, transport));
                     try!(protocol.read_message_end(transport));
                     Ok(())
                  }
