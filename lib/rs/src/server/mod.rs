@@ -18,5 +18,7 @@
  */
 
 pub mod simple_server;
+pub mod threaded;
 
 pub use self::simple_server::SimpleServer;
+pub use self::threaded::ThreadedServer;
