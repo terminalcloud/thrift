@@ -21,14 +21,14 @@ use std::io;
 use std::net::{TcpListener, TcpStream};
 use super::Transport;
 
-pub trait ServerTransport {
-    type Output: Transport;
+pub trait TransportServer {
+    type Transport: Transport;
 
-    fn accept(&self) -> io::Result<Self::Output>;
+    fn accept(&self) -> io::Result<Self::Transport>;
 }
 
-impl ServerTransport for TcpListener {
-    type Output = TcpStream;
+impl TransportServer for TcpListener {
+    type Transport = TcpStream;
 
     fn accept(&self) -> io::Result<TcpStream> {
         self.accept().map(|res| res.0)

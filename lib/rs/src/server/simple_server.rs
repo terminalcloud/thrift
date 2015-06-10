@@ -17,33 +17,34 @@
  * under the License.
  */
 
-use transport::server::ServerTransport;
+use transport::server::TransportServer;
+use transport::Transport;
 use protocol::ProtocolFactory;
 use processor::Processor;
 
-pub struct SimpleServer<Proc, PF, ST> {
-    processor: Proc,
+pub struct SimpleServer<P, PF, TS> {
+    processor: P,
     protocol_factory: PF,
-    server_transport: ST,
+    transport_server: TS,
 }
 
-impl<Proc, PF: ProtocolFactory, ST: ServerTransport> SimpleServer<Proc, PF, ST>
-    where Proc: Processor<PF::Output, ST::Output> {
+impl<P, PF: ProtocolFactory, TS: TransportServer> SimpleServer<P, PF, TS>
+where P: Processor<PF::Protocol, TS::Transport>,
+      TS::Transport: Transport {
 
-    pub fn new(processor: Proc, server_transport: ST, pf: PF) -> Self {
-        SimpleServer { processor: processor, protocol_factory: pf,
-                       server_transport: server_transport }
+    pub fn new(processor: P, transport_server: TS, pf: PF) -> Self {
+        SimpleServer {
+            processor: processor,
+            protocol_factory: pf,
+            transport_server: transport_server
+        }
     }
 
     pub fn serve(&mut self) {
         loop {
-            let mut transport = self.server_transport.accept().unwrap();
-            let mut prot = self.protocol_factory.new_protocol();
-            loop {
-                if self.processor.process(&mut prot, &mut transport).is_err() {
-                    break;
-                }
-            }
+            let mut transport = self.transport_server.accept().unwrap();
+            let mut protocol = self.protocol_factory.new_protocol();
+            while let Ok(_) = self.processor.process(&mut protocol, &mut transport) { }
         }
     }
 }
