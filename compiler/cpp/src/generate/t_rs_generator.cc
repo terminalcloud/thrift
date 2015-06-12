@@ -263,26 +263,18 @@ string t_rs_generator::rs_autogen_comment() {
 
 string t_rs_generator::rs_imports() {
   return string(
-    "#[allow(unused_imports)]\n"
+    "#![allow(unused_imports, dead_code, unused_variables)]\n"
     "use std::collections::{HashMap, HashSet};\n"
     "use std::rc::Rc;\n"
     "use std::cell::RefCell;\n"
     "use thrift::processor::Processor;\n"
-    "use thrift::protocol::{Protocol, MessageType, Type};\n"
-    "use thrift::transport::Transport;\n"
-    "use thrift::protocol::{Readable, Writeable, ProtocolHelpers};\n"
-    "use thrift::TResult;\n"
-    "#[allow(unused_imports)]\n"
-    "use thrift::ThriftErr;\n"
-    "#[allow(unused_imports)]\n"
-    "use thrift::ThriftErr::*;\n"
-    "#[allow(unused_imports)]\n"
-    "use thrift::protocol::Error;\n"
-    "#[allow(unused_imports)]\n"
-    "use thrift::protocol::FromNum;\n"
+    "use thrift::protocol::{self, Protocol, MessageType, Type, Encode, Decode, FromNum};\n"
+    "use thrift::transport::{self, Transport};\n"
+    "use thrift::{Error, Result};\n"
   );
 }
 
+// Generates a type alias, translating a thrift `typedef` to a rust `type`.
 void t_rs_generator::generate_typedef(t_typedef* ttypedef) {
   string tname = pascalcase(ttypedef->get_symbolic());
   string tdef = render_rs_type(ttypedef->get_type());
@@ -290,13 +282,15 @@ void t_rs_generator::generate_typedef(t_typedef* ttypedef) {
   f_mod_ << "\n";
 }
 
+// Generates an enum, translating a thrift enum into a rust enum.
 void t_rs_generator::generate_enum(t_enum* tenum) {
+  // Generate the enum declaration.
   string ename = pascalcase(tenum->get_name());
-  indent(f_mod_) << "#[allow(dead_code)]\n";
-  indent(f_mod_) << "#[derive(PartialEq,Eq,Hash,Copy,Clone,Debug)]\n";
+  indent(f_mod_) << "#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]\n";
   indent(f_mod_) << "pub enum " << ename << " {\n";
   indent_up();
 
+  // Generate the enum variant declarations.
   vector<t_enum_value*> constants = tenum->get_constants();
   vector<t_enum_value*>::iterator i, end = constants.end();
   for (i = constants.begin(); i != end; ++i) {
@@ -306,47 +300,55 @@ void t_rs_generator::generate_enum(t_enum* tenum) {
   }
 
   indent_down();
-  indent(f_mod_) << "}\n\n";
+  indent(f_mod_) << "}\n\n"; // Close enum declaration.
 
+  // Generate an implementation of FromNum for this enum.
   indent(f_mod_) << "impl FromNum for " << ename << " {\n";
   indent_up();
     indent(f_mod_) << "fn from_num(num: i32) -> Option<" << ename << "> {\n";
     indent_up();
       indent(f_mod_) << "match num {\n";
       indent_up();
+
+      // Generate the match arms for valid enum values.
       for (i = constants.begin(); i != end; ++i) {
         string name = capitalize((*i)->get_name());
         int value = (*i)->get_value();
         indent(f_mod_) << value << " => Some(" << ename << "::" << name << "),\n";
       }
-        indent(f_mod_) << "_ => None,\n";
-      indent_down();
-      indent(f_mod_) << "}\n";
-    indent_down();
-    indent(f_mod_) << "}\n";
-  indent_down();
-  indent(f_mod_) << "}\n\n";
 
-  // generate ctor
+      // Generate the match arm for invalid enum values.
+      indent(f_mod_) << "_ => None,\n";
+
+      indent_down();
+      indent(f_mod_) << "}\n"; // Close match num block.
+    indent_down();
+    indent(f_mod_) << "}\n"; // Close from_num method block.
+  indent_down();
+  indent(f_mod_) << "}\n\n"; // Close FromNum impl.
+
+  // Generate the constructor (new) for this enum.
   indent(f_mod_) << "impl " << ename << " {\n";
   indent_up();
-    indent(f_mod_) << "#[allow(dead_code)]\n";
     indent(f_mod_) << "pub fn new() -> " << ename << " {\n";
     indent_up();
 
       if (tenum->get_constants().empty()) {
-        indent(f_mod_) << ename << "\n";
+        // FIXME: A runtime panic is not ideal here. It would be better to warn or cause a
+        // compilation error (perhaps by not emitting a new method at all).
+        indent(f_mod_) << "panic!(\"Cannot instantiate the empty enum " << ename << "\")\n";
       }
       else {
         indent(f_mod_) << ename << "::"
                        << capitalize((*tenum->get_constants().begin())->get_name()) << "\n";
       }
     indent_down();
-    indent(f_mod_) << "}\n";
+    indent(f_mod_) << "}\n"; // Close the new method block.
   indent_down();
-  indent(f_mod_) << "}\n\n";
+  indent(f_mod_) << "}\n\n"; // Close the impl ename block.
 }
 
+// Generate a struct, translating a thrift struct into a rust struct.
 void t_rs_generator::generate_struct(t_struct* tstruct) {
   generate_struct_declaration(tstruct);
   generate_struct_ctor(tstruct);
@@ -354,6 +356,37 @@ void t_rs_generator::generate_struct(t_struct* tstruct) {
   generate_struct_reader(tstruct);
 }
 
+// Generate a struct declaration including the fields of the struct.
+void t_rs_generator::generate_struct_declaration(t_struct* tstruct) {
+  string struct_name = pascalcase(tstruct->get_name());
+  // FIXME: No Hash, PartialEq or Eq for all structs due to some structs containing
+  // floats, maps and sets, which don't necessarily implement those traits.
+  indent(f_mod_) << "#[derive(Debug, Clone)]\n";
+  if (tstruct->get_members().empty()) {
+    // Generate a zero-sized struct if there are no members.
+    indent(f_mod_) << "pub struct " << struct_name << ";\n\n";
+  }
+  else {
+    indent(f_mod_) << "pub struct " << struct_name << " {\n";
+    indent_up();
+
+    // Generate the struct fields.
+    vector<t_field*>::const_iterator m_iter;
+    const vector<t_field*>& members = tstruct->get_members();
+    for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
+      indent(f_mod_) << "pub ";
+      generate_field_declaration(*m_iter);
+    }
+
+    indent_down();
+    indent(f_mod_) << "}\n\n"; // Close the struct declaration.
+  }
+}
+
+// Generate single field declaration for embedding within a struct declaration.
+//
+// Generates a private field declaration which can be made pub by generating
+// "pub " before calling this function.
 void t_rs_generator::generate_field_declaration(t_field* tfield) {
   t_type* t = get_true_type(tfield->get_type());
 
@@ -367,38 +400,13 @@ void t_rs_generator::generate_field_declaration(t_field* tfield) {
   }
 }
 
-void t_rs_generator::generate_struct_declaration(t_struct* tstruct) {
-  string struct_name = pascalcase(tstruct->get_name());
-  indent(f_mod_) << "#[allow(dead_code)]\n";
-  indent(f_mod_) << "#[derive(Debug, Clone)]\n";
-  // FIXME: no Hash for structs due to floats, maps and sets
-  //indent(f_mod_) << "#[derive(PartialEq,Eq,Hash)]\n";
-  if (tstruct->get_members().empty()) {
-    indent(f_mod_) << "pub struct " << struct_name << ";\n\n";
-  }
-  else {
-    indent(f_mod_) << "pub struct " << struct_name << " {\n";
-    indent_up();
-
-    vector<t_field*>::const_iterator m_iter;
-    const vector<t_field*>& members = tstruct->get_members();
-    for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
-      indent(f_mod_) << "pub ";
-      generate_field_declaration(*m_iter);
-    }
-
-    indent_down();
-    indent(f_mod_) << "}\n\n";
-  }
-}
-
+// Generate a constructor for an already-declared struct.
 void t_rs_generator::generate_struct_ctor(t_struct* tstruct) {
   string struct_name = pascalcase(tstruct->get_name());
 
   indent(f_mod_) << "impl " << struct_name << " {\n";
   indent_up();
 
-    indent(f_mod_) << "#[allow(dead_code)]\n";
     indent(f_mod_) << "pub fn new() -> " << struct_name << " {\n";
     indent_up();
 
@@ -406,8 +414,10 @@ void t_rs_generator::generate_struct_ctor(t_struct* tstruct) {
         indent(f_mod_) << struct_name << "\n";
       }
       else {
+        // Open a struct literal.
         indent(f_mod_) << struct_name << " {\n";
         indent_up();
+          // Generate the struct fields and initialization expressions.
           vector<t_field*>::const_iterator m_iter;
           const vector<t_field*>& members = tstruct->get_members();
           for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
@@ -421,14 +431,16 @@ void t_rs_generator::generate_struct_ctor(t_struct* tstruct) {
             indent(f_mod_) << to_field_name((*m_iter)->get_name()) << ": " << init << ",\n";
           }
         indent_down();
-        indent(f_mod_) << "}\n";
+        indent(f_mod_) << "}\n"; // Close the struct literal block.
       }
     indent_down();
-    indent(f_mod_) << "}\n";
+    indent(f_mod_) << "}\n"; // Close the new method block.
   indent_down();
-  indent(f_mod_) << "}\n\n";
+  indent(f_mod_) << "}\n\n"; // Close the impl struct_name block.
 }
 
+// Generates a series of use statements that brings in the
+// chain of services the passed-in service extends and therefore relies on.
 void t_rs_generator::generate_service_uses(t_service* tservice) {
   t_service* service = tservice->get_extends();
   while (service) {
@@ -438,6 +450,10 @@ void t_rs_generator::generate_service_uses(t_service* tservice) {
   indent(f_mod_) << "\n";
 }
 
+// Generate a service, translating from a thrift service to a rust trait.
+//
+// Generating a service involves several steps.
+//   - TODO: Document the steps/parts of generating a new service.
 void t_rs_generator::generate_service(t_service* tservice) {
   generate_service_helpers(tservice);
   generate_service_client_trait(tservice);
@@ -554,7 +570,6 @@ void t_rs_generator::generate_service_client_impl(t_service* tservice) {
   string trait_name = tservice->get_name() + "Client";
   string impl_name = tservice->get_name() + "ClientImpl";
 
-  indent(f_mod_) << "#[allow(dead_code)]\n";
   indent(f_mod_) << "#[derive(Debug)]\n";
   indent(f_mod_) << "pub struct " << impl_name << "<P: Protocol, T: Transport> {\n";
   indent_up();
@@ -567,7 +582,6 @@ void t_rs_generator::generate_service_client_impl(t_service* tservice) {
   indent(f_mod_) << "impl <P: Protocol, T: Transport> "
                  << impl_name << "<P, T> {\n";
   indent_up();
-    indent(f_mod_) << "#[allow(dead_code)]\n";
     indent(f_mod_) << "pub fn new(protocol: P, transport: T) -> " << impl_name << "<P, T> {\n";
     indent_up();
       indent(f_mod_) << impl_name << " {\n";
@@ -736,7 +750,6 @@ void t_rs_generator::generate_service_processor_impl(t_service* tservice) {
   // Implement Processor::new()
   indent(f_mod_) << "impl<I: " << trait_name << "> " << impl_name << "<I> {\n";
   indent_up();
-    indent(f_mod_) << "#[allow(dead_code)]\n";
     indent(f_mod_) << "pub fn new(iface: Rc<RefCell<I>>) -> Self {\n";
     indent_up();
       indent(f_mod_) << impl_name << " {\n";
@@ -832,8 +845,6 @@ void t_rs_generator::generate_struct_writer(t_struct* tstruct) {
   indent(f_mod_) << "impl Writeable for " << struct_name << " {\n\n";
   indent_up();
 
-    indent(f_mod_) << "#[allow(unused_variables)]\n";
-    indent(f_mod_) << "#[allow(dead_code)]\n";
     indent(f_mod_) << "fn write(&self, oprot: &Protocol, transport: &mut Transport) "
                    << "-> TResult<()> {\n";
     indent_up();
@@ -869,9 +880,7 @@ void t_rs_generator::generate_field_write(t_field* field) {
       || type->is_xception();
     string ref = need_ref ? "ref " : "";
 
-    indent(f_mod_) << "match " << qualified_name << " {\n";
-    indent_up();
-    indent(f_mod_) << "Some(" << ref << "x) => {\n";
+    indent(f_mod_) << "if let Some(" << ref << "x) = " << qualified_name << " {\n";
     indent_up();
     qualified_name = "x";
   }
@@ -885,9 +894,6 @@ void t_rs_generator::generate_field_write(t_field* field) {
   indent(f_mod_) << "try!(oprot.write_field_end(transport));\n";
 
   if (is_optional) {
-    indent_down();
-    indent(f_mod_) << "}\n";
-    indent(f_mod_) << "_ => {}\n";
     indent_down();
     indent(f_mod_) << "}\n";
   }
@@ -1122,6 +1128,12 @@ void t_rs_generator::generate_read_set(t_type* type, const string& name) {
   // FIXME: write entries
 }
 
+// Renders a rust type representing the passed in type.
+//
+// The split_generics parameter controls whether the type will be rendered
+// for use in an expression context (with :: between the type and the generics
+// list) or in a type context (with no ::). For instance, HashMap::<K, V> with
+// split_generics=true would be HashMap<K, V> with split_generics=false.
 string t_rs_generator::render_rs_type(t_type* type, bool split_generics) {
   type = get_true_type(type);
 
@@ -1174,6 +1186,23 @@ string t_rs_generator::render_rs_type(t_type* type, bool split_generics) {
   return ""; // silence the compiler warning
 }
 
+// Renders the variant name for use with Type, e.g. for TYPE_VOID this
+// generates Void to be used as Type::Void.
+//
+// The generated variant names are:
+//   - TYPE_VOID => Void
+//   - TYPE_STRING => String
+//   - TYPE_BOOL => Bool
+//   - TYPE_BYTE => Byte
+//   - TYPE_I16 => I16
+//   - TYPE_I32 => I32
+//   - TYPE_I64 => I64
+//   - TYPE_DOUBLE => Double,
+//   - is_enum() => I32
+//   - is_struct() || is_xception() => Struct
+//   - is_map() => Map
+//   - is_set() => Set
+//   - is_list() => List
 string t_rs_generator::render_protocol_type(t_type* type) {
   type = get_true_type(type);
 
@@ -1181,45 +1210,52 @@ string t_rs_generator::render_protocol_type(t_type* type) {
     t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
     switch (tbase) {
     case t_base_type::TYPE_VOID:
-      return "TVoid";
+      return "Void";
     case t_base_type::TYPE_STRING:
-      return "TString";
+      return "String";
     case t_base_type::TYPE_BOOL:
-      return "TBool";
+      return "Bool";
     case t_base_type::TYPE_BYTE:
-      return "TByte";
+      return "Byte";
     case t_base_type::TYPE_I16:
-      return "TI16";
+      return "I16";
     case t_base_type::TYPE_I32:
-      return "TI32";
+      return "I32";
     case t_base_type::TYPE_I64:
-      return "TI64";
+      return "I64";
     case t_base_type::TYPE_DOUBLE:
-      return "TDouble";
+      return "Double";
     }
-
   } else if (type->is_enum()) {
-    return "TI32";
-
+    return "I32";
   } else if (type->is_struct() || type->is_xception()) {
-    return "TStruct";
-
+    return "Struct";
   } else if (type->is_map()) {
-    return "TMap";
-
+    return "Map";
   } else if (type->is_set()) {
-    return "TSet";
-
+    return "Set";
   } else if (type->is_list()) {
-    return "TList";
-
+    return "List";
   } else {
     throw "INVALID TYPE IN render_protocol_type: " + type->get_name();
   }
+
   return ""; // silence the compiler warning
 }
 
-
+// Renders the suffix used for Protocol methods, e.g. "double" in
+// "read_double".
+//
+// The generated suffixes are:
+//   - TYPE_STRING (not binary) => string
+//   - TYPE_STRING (binary) => binary
+//   - TYPE_BOOL => bool
+//   - TYPE_BYTE => byte
+//   - TYPE_I16 => i16
+//   - TYPE_I32 => i32
+//   - TYPE_I64 => i64
+//   - TYPE_DOUBLE => double
+//   - is_enum() => i32
 string t_rs_generator::render_suffix(t_type* type) {
   type = get_true_type(type);
 
@@ -1253,42 +1289,53 @@ string t_rs_generator::render_suffix(t_type* type) {
   return ""; // silence the compiler warning
 }
 
-
+// Renders an initialization expression for the passed type.
+//
+// The generated expressions are:
+//   - TYPE_VOID => ()
+//   - TYPE_STRING (not binary) => String::new()
+//   - TYPE_STRING (binary) => Vec::<u8>::new()
+//   - TYPE_BOOL => false
+//   - TYPE_BYTE => 0u8
+//   - TYPE_I16 => 0i16
+//   - TYPE_I32 => 0i32
+//   - TYPE_I64 => 0i64
+//   - TYPE_DOUBLE => 0.0f64
+//   - is_struct() || is_xception() || is_enum() => calls capitalize + ::new()
+//   - is_map() || is_set => calls render_rs_type + ::new()
 string t_rs_generator::render_type_init(t_type* type) {
   type = get_true_type(type);
-    if (type->is_base_type()) {
-      t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
-      switch (tbase) {
-      case t_base_type::TYPE_VOID:
-        return "()";
-      case t_base_type::TYPE_STRING:
-        return (((t_base_type*)type)->is_binary() ? "Vec::<u8>::new()" : "String::new()");
-      case t_base_type::TYPE_BOOL:
-        return "false";
-      case t_base_type::TYPE_BYTE:
-        return "0";
-      case t_base_type::TYPE_I16:
-        return "0";
-      case t_base_type::TYPE_I32:
-        return "0";
-      case t_base_type::TYPE_I64:
-        return "0";
-      case t_base_type::TYPE_DOUBLE:
-        return "0.0";
-      }
-
+  if (type->is_base_type()) {
+    t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
+    switch (tbase) {
+    case t_base_type::TYPE_VOID:
+      return "()";
+    case t_base_type::TYPE_STRING:
+      return (((t_base_type*)type)->is_binary() ? "Vec::<u8>::new()" : "String::new()");
+    case t_base_type::TYPE_BOOL:
+      return "false";
+    case t_base_type::TYPE_BYTE:
+      return "0u8";
+    case t_base_type::TYPE_I16:
+      return "0i16";
+    case t_base_type::TYPE_I32:
+      return "0i32";
+    case t_base_type::TYPE_I64:
+      return "0i64";
+    case t_base_type::TYPE_DOUBLE:
+      return "0.0f64";
+    }
   } else if (type->is_struct() || type->is_xception()) {
     return capitalize(((t_struct*)type)->get_name()) + "::new()";
-
   } else if (type->is_enum()) {
     return capitalize(type->get_name()) + "::new()";
-
   } else if (type->is_map() || type->is_set() || type->is_list()) {
     return render_rs_type(type, true) + "::new()";
-
   } else {
     throw "INVALID TYPE IN render_type_init: " + type->get_name();
   }
   return ""; // silence the compiler warning
 }
+
 THRIFT_REGISTER_GENERATOR(rs, "Rust", "")
+

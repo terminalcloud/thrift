@@ -5,11 +5,17 @@ use std::error::Error as StdError;
 
 pub use protocol::Protocol;
 pub use transport::Transport;
+pub use processor::Processor;
 
 pub mod protocol;
 pub mod transport;
 pub mod server;
 pub mod processor;
+
+#[macro_use]
+mod codegen;
+mod impls;
+mod compiletest;
 
 #[derive(Debug)]
 pub enum Error {

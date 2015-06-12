@@ -129,12 +129,16 @@ impl MessageType {
     }
 }
 
-pub trait Encode {
+pub trait ThriftTyped {
+    fn typ() -> Type;
+}
+
+pub trait Encode: ThriftTyped {
     fn encode<P, T>(&self, &mut P, &mut T) -> Result<()>
     where P: Protocol, T: Transport;
 }
 
-pub trait Decode {
+pub trait Decode: ThriftTyped + Default {
     fn decode<P, T>(&mut self, &mut P, &mut T) -> Result<()>
     where P: Protocol, T: Transport;
 }
