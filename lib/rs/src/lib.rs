@@ -1,6 +1,9 @@
 #![feature(optin_builtin_traits)]
 extern crate podio;
 
+#[macro_use]
+extern crate log;
+
 use std::{io, fmt};
 use std::error::Error as StdError;
 use std::collections::{HashSet, HashMap};
@@ -18,6 +21,11 @@ pub mod processor;
 mod codegen;
 mod impls;
 mod compiletest;
+
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod test;
 
 #[derive(Debug)]
 pub enum Error {

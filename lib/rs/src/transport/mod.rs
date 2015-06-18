@@ -25,6 +25,3 @@ pub trait Transport: Write + Read { }
 
 impl<T: Write + Read> Transport for T { }
 
-#[cfg(test)]
-pub mod test;
-

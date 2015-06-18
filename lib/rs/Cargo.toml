@@ -2,7 +2,10 @@
 
 name = "thrift"
 version = "0.0.1"
-authors = ["Simon Génier <s@simon.coffee>", "Maxim Golov <maxim.golov@gmail.com>"]
+authors = ["Jonathan Reem <jonathan.reem@gmail.com>",
+           "Simon Génier <s@simon.coffee>",
+           "Maxim Golov <maxim.golov@gmail.com>"]
 
 [dependencies]
 podio = "0.1"
+log = "0"

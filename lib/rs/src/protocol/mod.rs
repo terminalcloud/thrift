@@ -24,7 +24,7 @@ use Result;
 
 pub mod binary_protocol;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     /// Protocol version mismatch
     BadVersion,
