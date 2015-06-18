@@ -10,8 +10,10 @@ impl ThriftTyped for i16 { fn typ() -> Type { Type::I16 } }
 impl ThriftTyped for i32 { fn typ() -> Type { Type::I32 } }
 impl ThriftTyped for i64 { fn typ() -> Type { Type::I64 } }
 impl ThriftTyped for f64 { fn typ() -> Type { Type::Double } }
+impl ThriftTyped for () { fn typ() -> Type { Type::Void } }
 impl ThriftTyped for String { fn typ() -> Type { Type::String } }
 impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ() -> Type { Type::List } }
+impl<T: ThriftTyped> ThriftTyped for Option<T> { fn typ() -> Type { T::typ() } }
 impl<T: ThriftTyped> ThriftTyped for HashSet<T> { fn typ() -> Type { Type::Set } }
 impl<K: ThriftTyped, V: ThriftTyped> ThriftTyped for HashMap<K, V> { fn typ() -> Type { Type::Map } }
 
@@ -61,12 +63,24 @@ impl<K: Encode + Hash + Eq, V: Encode> Encode for HashMap<K, V> {
     }
 }
 
+impl<X: Encode> Encode for Option<X> {
+    fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        self.as_ref().map(|this| this.encode(protocol, transport)).unwrap_or(Ok(()))
+    }
+}
+
 impl Encode for String {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         try!(protocol.write_string(transport, self));
         Ok(())
     }
+}
+
+impl Encode for () {
+    fn encode<P, T>(&self, _: &mut P, _: &mut T) -> Result<()>
+    where P: Protocol, T: Transport { Ok(()) }
 }
 
 macro_rules! prim_encode {
@@ -144,6 +158,18 @@ impl<K: Decode + Eq + Hash, V: Decode> Decode for HashMap<K, V> {
             Err(Error::from(protocol::Error::ProtocolViolation))
         }
     }
+}
+
+impl<X: Decode> Decode for Option<X> {
+    fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        self.as_mut().map(|this| this.decode(protocol, transport)).unwrap_or(Ok(()))
+    }
+}
+
+impl Decode for () {
+    fn decode<P, T>(&mut self, _: &mut P, _: &mut T) -> Result<()>
+    where P: Protocol, T: Transport { Ok(()) }
 }
 
 macro_rules! prim_decode {

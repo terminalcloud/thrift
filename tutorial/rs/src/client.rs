@@ -17,6 +17,7 @@
  * under the License.
  */
 
+#[macro_use]
 extern crate thrift;
 extern crate bufstream;
 
@@ -28,8 +29,15 @@ use thrift::protocol::binary_protocol::BinaryProtocol;
 mod tutorial;
 mod shared;
 
+pub fn main() {
+    let addr: net::SocketAddr = FromStr::from_str("127.0.0.1:9090").ok()
+        .expect("bad server address");
+    let tcp = net::TcpStream::connect(addr).ok()
+        .expect("failed to connect");
+    let stream = BufStream::new(tcp);
+    // FIXME: do we want tutorial::build_calculator_client(BinaryProtocol, tcp) here?
+    let mut client = tutorial::CalculatorClient::new(BinaryProtocol, stream);
 
-fn run_client(client: &mut tutorial::CalculatorClient) {
     // Ping
     client.ping().ok().unwrap();
     println!("ping()");
@@ -67,16 +75,4 @@ fn run_client(client: &mut tutorial::CalculatorClient) {
     println!("Received log: {}", ss.value);
 
     println!("PASS");
-}
-
-pub fn main() {
-    let addr: net::SocketAddr = FromStr::from_str("127.0.0.1:9090").ok()
-        .expect("bad server address");
-    let tcp = net::TcpStream::connect(addr).ok()
-        .expect("failed to connect");
-    let stream = BufStream::new(tcp);
-    // FIXME: do we want tutorial::build_calculator_client(BinaryProtocol, tcp) here?
-    let mut client = tutorial::CalculatorClientImpl::new(BinaryProtocol, stream);
-
-    run_client(&mut client);
 }

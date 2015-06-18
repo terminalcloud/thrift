@@ -4,14 +4,14 @@ use std::collections::{HashSet, HashMap};
 strukt! {
     name = Simple,
     fields = {
-        key: String => 16
+        key: String => 16,
     }
 }
 
 strukt! {
     name = DeeplyNested,
     fields = {
-        nested: HashSet<Vec<Vec<Vec<Vec<i32>>>>> => 6
+        nested: HashSet<Vec<Vec<Vec<Vec<i32>>>>> => 6,
     }
 }
 
@@ -20,13 +20,13 @@ strukt! {
     fields = {
         other: DeeplyNested => 2,
         another: Simple => 3,
-        map: HashMap<i32, Vec<String>> => 4
+        map: HashMap<i32, Vec<String>> => 4,
     }
 }
 
 enom! {
     name = Operation,
-    values = [Add = 1, Sub = 2, Mul = 3, Div = 4],
+    values = [Add = 1, Sub = 2, Mul = 3, Div = 4,],
     default = Add
 }
 
@@ -34,10 +34,28 @@ service! {
     trait_name = SharedService,
     processor_name = SharedServiceProcessor,
     client_name = SharedServiceClient,
-    methods = [
-        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1) -> DeeplyNested
+    service_methods = [
+        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested,
     ],
-    bounds = [<S: SharedService>],
-    fields = [shared: S]
+    parent_methods = [],
+    bounds = [S: SharedService,],
+    fields = [shared: S,]
+}
+
+service! {
+     trait_name = ChildService,
+     processor_name = ChildServiceProcessor,
+     client_name = ChildServiceClient,
+     service_methods = [
+         ChildServiceOperationArgs -> ChildServiceOperationResult = child.operation(
+             one: String => 2,
+             another: i32 => 3,
+         ) -> Operation,
+     ],
+     parent_methods = [
+        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested,
+     ],
+     bounds = [S: SharedService, C: ChildService,],
+     fields = [shared: S, child: C,]
 }
 

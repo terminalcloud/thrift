@@ -3,68 +3,61 @@ macro_rules! service {
     (trait_name = $name:ident,
      processor_name = $processor_name:ident,
      client_name = $client_name:ident,
-     methods = [$($iname:ident -> $oname:ident = $mfname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr),*) -> $rty:ty),+],
-     bounds = [$($bounds:tt)*],
-     fields = [$($fname:ident: $fty:ty)+]) => {
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*],
+     bounds = [$($boundty:ident: $bound:ident,)*],
+     fields = [$($fname:ident: $fty:ty,)*]) => {
         pub trait $name {
-            $(fn $mname(&self, $($aname: $aty)*) -> $rty;)+
+            $(fn $smname(&self, $($saname: $saty),*) -> $srty;)*
         }
 
         service_processor! {
             processor_name = $processor_name,
-            methods = [$($iname -> $oname = $mfname.$mname($($aname: $aty => $aid),*) -> $rty),+],
-            bounds = [$($bounds)*],
-            fields = [$($fname: $fty),+]
+            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*],
+            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*],
+            bounds = [$($boundty: $bound,)*],
+            fields = [$($fname: $fty,)*]
         }
 
         service_client! {
             client_name = $client_name,
-            methods = [$($iname -> $oname = $mfname.$mname($($aname: $aty => $aid),*) -> $rty),+]
+            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*],
+            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*]
         }
     }
 }
 
+#[macro_export]
 macro_rules! service_processor {
     (processor_name = $name:ident,
-     methods = [$($iname:ident -> $oname:ident = $mfname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr),*) -> $rty:ty),+],
-     bounds = [<$($boundty:ident: $bound:ident),*>],
-     fields = [$($fname:ident: $fty:ty),+]) => {
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*],
+     bounds = [$($boundty:ident: $bound:ident,)*],
+     fields = [$($fname:ident: $fty:ty,)*]) => {
         pub struct $name<$($boundty: $bound),*> {
-            $($fname: $fty),+
+            $($fname: $fty,)*
+            _ugh: ()
         }
 
-        $(strukt! { name = $iname, fields = { $($aname: $aty => $aid),* } }
-          strukt! { name = $oname, fields = { success: $rty => 0 } })+
+        $(strukt! { name = $siname, fields = { $($saname: $saty => $said,)* } }
+          strukt! { name = $soname, fields = { success: $srty => 0, } })*
 
         impl<$($boundty: $bound),*> $name<$($boundty),*> {
-            pub fn new($($fname: $fty)+) -> Self {
-                $name { $($fname: $fname,)+ }
+            pub fn new($($fname: $fty),*) -> Self {
+                $name { $($fname: $fname,)* _ugh: () }
             }
 
             pub fn dispatch<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
                                                                        name: &str, ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
                 match name {
-                    $(stringify!($mname) => self.$mname(prot, transport, ty, id))+,
+                    $(stringify!($smname) => self.$smname(prot, transport, ty, id),)*
+                    $(stringify!($pmname) => self.$pmname(prot, transport, ty, id),)*
                     _ => Err($crate::Error::from($crate::protocol::Error::ProtocolViolation))
                 }
             }
 
-            $(fn $mname<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
-                                                                   ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
-                static MNAME: &'static str = stringify!($mname);
-
-                let mut args = $iname::default();
-                try!($crate::protocol::helpers::receive_body(prot, transport, MNAME,
-                                                             &mut args, MNAME, ty, id));
-
-                let mut result = $oname::default();
-                result.success = self.$fname.$mname($(args.$aname)*);
-
-                try!($crate::protocol::helpers::send(prot, transport, MNAME,
-                                                     $crate::protocol::MessageType::Reply, &result));
-
-                Ok(())
-            })+
+            service_processor_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*] }
+            service_processor_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*] }
         }
 
         impl<P: $crate::Protocol, T: $crate::Transport, $($boundty: $bound),*> $crate::Processor<P, T> for $name<$($boundty),*> {
@@ -79,9 +72,33 @@ macro_rules! service_processor {
     }
 }
 
+#[macro_export]
+macro_rules! service_processor_methods {
+    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty,)*]) => {
+        $(fn $mname<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
+                                                               ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
+            static MNAME: &'static str = stringify!($mname);
+
+            let mut args = $iname::default();
+            try!($crate::protocol::helpers::receive_body(prot, transport, MNAME,
+                                                         &mut args, MNAME, ty, id));
+
+            let mut result = $oname::default();
+            result.success = self.$fname.$mname($(args.$aname),*);
+
+            try!($crate::protocol::helpers::send(prot, transport, MNAME,
+                                                 $crate::protocol::MessageType::Reply, &result));
+
+            Ok(())
+        })*
+    }
+}
+
+#[macro_export]
 macro_rules! service_client {
     (client_name = $client_name:ident,
-     methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr),*) -> $rty:ty),+]) => {
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*]) => {
         pub struct $client_name<P: $crate::Protocol, T: $crate::Transport> {
             pub protocol: P,
             pub transport: T
@@ -95,29 +112,42 @@ macro_rules! service_client {
                 }
             }
 
-            $(pub fn $mname(&mut self, $($aname: $aty,)*) -> $crate::Result<$rty> {
-                static MNAME: &'static str = stringify!($mname);
-
-                let args = $iname { $($aname: $aname,)* };
-                try!($crate::protocol::helpers::send(&mut self.protocol, &mut self.transport,
-                                                     MNAME, $crate::protocol::MessageType::Call, &args));
-
-                let mut result = $oname::default();
-                try!($crate::protocol::helpers::receive(&mut self.protocol, &mut self.transport,
-                                                        MNAME, &mut result));
-
-                Ok(result.success)
-            })+
+            service_client_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*] }
+            service_client_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*] }
         }
+    }
+}
+
+#[macro_export]
+macro_rules! service_client_methods {
+    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty,)*]) => {
+        $(pub fn $mname(&mut self, $($aname: $aty,)*) -> $crate::Result<$rty> {
+            static MNAME: &'static str = stringify!($mname);
+
+            let mut args = $iname::default();
+            $(args.$aname = $aname;)*
+            try!($crate::protocol::helpers::send(&mut self.protocol, &mut self.transport,
+                                                 MNAME, $crate::protocol::MessageType::Call, &mut args));
+
+            let mut result = $oname::default();
+            try!($crate::protocol::helpers::receive(&mut self.protocol, &mut self.transport,
+                                                    MNAME, &mut result));
+
+            Ok(result.success)
+        })*
     }
 }
 
 #[macro_export]
 macro_rules! strukt {
     (name = $name:ident,
-     fields = { $($fname:ident: $fty:ty => $id:expr),* }) => {
+     fields = { $($fname:ident: $fty:ty => $id:expr,)+ }) => {
         #[derive(Debug, Clone, Default)]
-        pub struct $name { $($fname: $fty),* }
+        pub struct $name {
+            $(pub $fname: $fty,)+
+        }
+
+        impl $crate::Exists for $name {}
 
         impl $crate::protocol::ThriftTyped for $name {
             fn typ() -> $crate::protocol::Type { $crate::protocol::Type::Struct }
@@ -129,11 +159,17 @@ macro_rules! strukt {
                 #[allow(unused_imports)]
                 use $crate::protocol::{Encode, ThriftTyped};
                 #[allow(unused_imports)]
-                use $crate::Protocol;
+                use $crate::{Protocol, Exists};
 
-                $(try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
-                  try!(self.$fname.encode(protocol, transport));
-                  try!(protocol.write_field_end(transport));)*
+                try!(protocol.write_struct_begin(transport, stringify!($name)));
+
+                $(if self.$fname.exists() {
+                    try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
+                    try!(self.$fname.encode(protocol, transport));
+                    try!(protocol.write_field_end(transport));
+                })*
+
+                try!(protocol.write_struct_end(transport));
 
                 Ok(())
             }
@@ -176,18 +212,54 @@ macro_rules! strukt {
             }
         }
     };
+    (name = $name:ident, fields = {}) => {
+        #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $name;
+
+        impl $crate::protocol::ThriftTyped for $name {
+            fn typ() -> $crate::protocol::Type { $crate::protocol::Type::Struct }
+        }
+
+        impl $crate::protocol::Encode for $name {
+            fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> $crate::Result<()>
+            where P: $crate::Protocol, T: $crate::Transport {
+                #[allow(unused_imports)]
+                use $crate::Protocol;
+
+                try!(protocol.write_struct_begin(transport, stringify!($name)));
+                try!(protocol.write_struct_end(transport));
+
+                Ok(())
+            }
+        }
+
+        impl $crate::protocol::Decode for $name {
+            fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> $crate::Result<()>
+            where P: $crate::Protocol, T: $crate::Transport {
+                #[allow(unused_imports)]
+                use $crate::Protocol;
+
+                try!(protocol.read_struct_begin(transport));
+                try!(protocol.read_struct_end(transport));
+
+                Ok(())
+            }
+        }
+    }
 }
 
 #[macro_export]
 macro_rules! enom {
     (name = $name:ident,
-     values = [$($vname:ident = $val:expr),*],
+     values = [$($vname:ident = $val:expr,)*],
      default = $dname:ident) => {
         #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Ord, PartialOrd)]
         #[repr(i32)]
         pub enum $name {
             $($vname = $val),*
         }
+
+        impl $crate::Exists for $name {}
 
         impl Default for $name {
             fn default() -> Self { $name::$dname }

@@ -17,13 +17,13 @@
  * under the License.
  */
 
+#[macro_use]
 extern crate thrift;
 
 mod tutorial;
 mod shared;
 
 use std::net;
-use std::rc::Rc;
 use std::cell::RefCell;
 use std::str::FromStr;
 use std::collections::HashMap;
@@ -31,26 +31,24 @@ use std::collections::HashMap;
 use thrift::protocol::binary_protocol::BinaryProtocol;
 use thrift::server::SimpleServer;
 
-use tutorial::{Operation, Work, CalculatorProcessor, CalculatorIf};
-use shared::{SharedStruct, SharedServiceIf};
+use tutorial::{Operation, Work, CalculatorProcessor, Calculator};
+use shared::{SharedStruct, SharedService};
 
-#[allow(dead_code)]
 struct CalculatorHandler {
-    log: HashMap<i32, SharedStruct>
+    log: RefCell<HashMap<i32, SharedStruct>>
 }
 
-#[allow(dead_code)]
-impl CalculatorIf for CalculatorHandler {
-    fn ping(&mut self) {
+impl<'a> Calculator for &'a CalculatorHandler {
+    fn ping(&self) {
         println!("ping()");
     }
 
-    fn add(&mut self, n1: i32, n2: i32) -> i32 {
+    fn add(&self, n1: i32, n2: i32) -> i32 {
         println!("add({}, {})", n1, n2);
         n1 + n2
     }
 
-    fn calculate(&mut self, log_id: i32, work: Work) -> i32 {
+    fn calculate(&self, log_id: i32, work: Work) -> i32 {
         println!("calculate({}, {:?})", log_id, work);
 
         let val = match work.op {
@@ -68,35 +66,31 @@ impl CalculatorIf for CalculatorHandler {
         };
 
         let ss = SharedStruct { key: log_id, value: val.to_string() };
-        self.log.insert(log_id, ss);
+        self.log.borrow_mut().insert(log_id, ss);
 
         val
     }
 
-    fn zip(&mut self) {
+    fn zip(&self) {
         println!("zip");
     }
 }
 
-impl SharedServiceIf for CalculatorHandler {
-    fn getStruct(&mut self, log_id: i32) -> SharedStruct {
+impl<'a> SharedService for &'a CalculatorHandler {
+    fn getStruct(&self, log_id: i32) -> SharedStruct {
         println!("getStruct({})", log_id);
-        self.log[&log_id].clone()
+        self.log.borrow()[&log_id].clone()
     }
 }
 
-fn construct_protocol() -> BinaryProtocol {
-    BinaryProtocol
-}
-
 pub fn main() {
-    let handler = CalculatorHandler { log: HashMap::new() };
-    let processor = CalculatorProcessor::new(Rc::new(RefCell::new(handler)));
+    let handler = CalculatorHandler { log: RefCell::new(HashMap::new()) };
+    let processor = CalculatorProcessor::new(&handler, &handler);
 
     let addr: net::SocketAddr = FromStr::from_str("127.0.0.1:9090").ok()
         .expect("bad server address");
     let server_transport = net::TcpListener::bind(addr).unwrap();
-    let mut server = SimpleServer::new(processor, server_transport, construct_protocol);
+    let mut server = SimpleServer::new(processor, server_transport, || BinaryProtocol);
 
     println!("Starting the server...");
     server.serve();

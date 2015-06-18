@@ -1,7 +1,9 @@
+#![feature(optin_builtin_traits)]
 extern crate podio;
 
 use std::{io, fmt};
 use std::error::Error as StdError;
+use std::collections::{HashSet, HashMap};
 
 pub use protocol::Protocol;
 pub use transport::Transport;
@@ -63,4 +65,28 @@ impl fmt::Display for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+// Some machinery for optional fields.
+#[doc(hidden)]
+pub trait Exists {
+    #[inline(always)]
+    fn exists(&self) -> bool { true }
+}
+
+impl<T> Exists for Option<T> {
+    #[inline(always)]
+    fn exists(&self) -> bool { self.is_some() }
+}
+
+impl Exists for bool { }
+impl Exists for i8  { }
+impl Exists for i16 { }
+impl Exists for i32 { }
+impl Exists for i64 { }
+impl Exists for f64 { }
+impl Exists for () { }
+impl Exists for String { }
+impl<T> Exists for Vec<T> { }
+impl<T> Exists for HashSet<T> { }
+impl<K, V> Exists for HashMap<K, V> { }
 
