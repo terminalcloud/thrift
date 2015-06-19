@@ -17,11 +17,11 @@
  * under the License.
  */
 
+#[macro_use]
 extern crate thrift;
 extern crate bufstream;
 
-use std::str::FromStr;
-use std::net;
+use std::net::TcpStream;
 use bufstream::BufStream;
 use thrift::protocol::binary_protocol::BinaryProtocol;
 use tutorial::CalculatorClient;
@@ -42,12 +42,8 @@ pub fn main() {
         _ => 2000
     };
 
-    let addr: net::SocketAddr = FromStr::from_str("127.0.0.1:9090").ok()
-        .expect("bad server address");
-    let tcp = net::TcpStream::connect(addr).ok()
-        .expect("failed to connect");
-    let stream = BufStream::new(tcp);
-    let mut client = tutorial::CalculatorClientImpl::new(BinaryProtocol, stream);
+    let mut client = tutorial::CalculatorClient::new(
+        BinaryProtocol, BufStream::new(TcpStream::connect("127.0.0.1:9090").unwrap()));
 
     println!("Rust Thrift benchmark");
     println!("Running {} iterations", iterations);
