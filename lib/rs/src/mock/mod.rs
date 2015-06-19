@@ -6,7 +6,6 @@ use {Protocol, Transport, Result};
 use protocol::{Type, MessageType};
 
 pub use self::ProtocolAction::*;
-pub use self::SerAction::*;
 pub use self::Primitive::*;
 pub use self::Action::*;
 
@@ -57,18 +56,19 @@ impl MockProtocol {
 }
 
 macro_rules! read {
-    ($selff:expr, $expected:pat, $body:expr) => {
-        match $selff.log.pop() {
-             Some(Write($expected)) => Ok($body),
-             Some(other) => {
+    ($selff:expr, $expected:pat, $body:expr) => {{
+        if $selff.log.len() == 0 {
+            panic!(concat!("Unexpected read on empty log. Expected ", stringify!($expected)))
+        }
+
+        match $selff.log.remove(0) {
+             $expected => Ok($body),
+             other => {
                  panic!(concat!("Unexpected read. Expected ", stringify!($expected),
                         ", encountered {:?}. Log was: {:?}"), &other, &$selff.log)
-             },
-             None => {
-                 panic!(concat!("Unexpected read on empty log. Expected ", stringify!($expected)))
              }
         }
-    };
+    }};
     ($selff:expr, $expected:pat) => { read!($selff, $expected, ()) }
 }
 
@@ -76,84 +76,84 @@ macro_rules! read {
 impl Protocol for MockProtocol {
     fn write_message_begin<T: Transport>(&mut self, _: &mut T, name: &str,
                                          message_type: MessageType, sequence_id: i32) -> Result<()> {
-        self.log_action(Write(Message(Begin((String::from(name), message_type, sequence_id)))))
+        self.log_action(Message(Begin((String::from(name), message_type, sequence_id))))
     }
 
     fn write_message_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Message(End)))
+        self.log_action(Message(End))
     }
 
     fn write_struct_begin<T: Transport>(&mut self, _: &mut T, name: &str) -> Result<()> {
-         self.log_action(Write(Struct(Begin(String::from(name)))))
+         self.log_action(Struct(Begin(String::from(name))))
     }
 
     fn write_struct_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Struct(End)))
+        self.log_action(Struct(End))
     }
 
     fn write_field_begin<T: Transport>(&mut self, _: &mut T, name: &str, field_type: Type, field_id: i16) -> Result<()> {
-        self.log_action(Write(Field(Begin((String::from(name), field_type, field_id)))))
+        self.log_action(Field(Begin((String::from(name), field_type, field_id))))
     }
 
     fn write_field_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Field(End)))
+        self.log_action(Field(End))
     }
 
     fn write_field_stop<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Field(Stop)))
+        self.log_action(Field(Begin((String::new(), Type::Stop, 0))))
     }
 
     fn write_map_begin<T: Transport>(&mut self, _: &mut T, key_type: Type,
                                      value_type: Type, size: usize) -> Result<()> {
-         self.log_action(Write(Map(Begin((key_type, value_type, size)))))
+         self.log_action(Map(Begin((key_type, value_type, size))))
     }
 
     fn write_map_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Map(End)))
+        self.log_action(Map(End))
     }
 
     fn write_list_begin<T: Transport>(&mut self, _: &mut T, elem_type: Type, size: usize) -> Result<()> {
-        self.log_action(Write(List(Begin((elem_type, size)))))
+        self.log_action(List(Begin((elem_type, size))))
     }
 
     fn write_list_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(List(End)))
+        self.log_action(List(End))
     }
 
     fn write_set_begin<T: Transport>(&mut self, _: &mut T, elem_type: Type, size: usize) -> Result<()> {
-        self.log_action(Write(Set(Begin((elem_type, size)))))
+        self.log_action(Set(Begin((elem_type, size))))
     }
 
     fn write_set_end<T: Transport>(&mut self, _: &mut T) -> Result<()> {
-        self.log_action(Write(Set(End)))
+        self.log_action(Set(End))
     }
 
     fn write_bool<T: Transport>(&mut self, _: &mut T, value: bool) -> Result<()> {
-        self.log_action(Write(Prim(Bool(value))))
+        self.log_action(Prim(Bool(value)))
     }
 
     fn write_byte<T: Transport>(&mut self, _: &mut T, value: i8) -> Result<()> {
-        self.log_action(Write(Prim(Byte(value))))
+        self.log_action(Prim(Byte(value)))
     }
 
     fn write_i16<T: Transport>(&mut self, _: &mut T, value: i16) -> Result<()> {
-        self.log_action(Write(Prim(I16(value))))
+        self.log_action(Prim(I16(value)))
     }
 
     fn write_i32<T: Transport>(&mut self, _: &mut T, value: i32) -> Result<()> {
-        self.log_action(Write(Prim(I32(value))))
+        self.log_action(Prim(I32(value)))
     }
 
     fn write_i64<T: Transport>(&mut self, _: &mut T, value: i64) -> Result<()> {
-        self.log_action(Write(Prim(I64(value))))
+        self.log_action(Prim(I64(value)))
     }
 
     fn write_double<T: Transport>(&mut self, _: &mut T, value: f64) -> Result<()> {
-        self.log_action(Write(Prim(Double(value))))
+        self.log_action(Prim(Double(value)))
     }
 
     fn write_str<T: Transport>(&mut self, _: &mut T, value: &str) -> Result<()> {
-        self.log_action(Write(Prim(PString(String::from(value)))))
+        self.log_action(Prim(PString(String::from(value))))
     }
 
     fn write_string<T: Transport>(&mut self, transport: &mut T, value: &String) -> Result<()> {
@@ -161,7 +161,7 @@ impl Protocol for MockProtocol {
     }
 
     fn write_binary<T: Transport>(&mut self, _: &mut T, value: &[u8]) -> Result<()> {
-        self.log_action(Write(Prim(Binary(Vec::from(value)))))
+        self.log_action(Prim(Binary(Vec::from(value))))
     }
 
     fn read_message_begin<T: Transport>(&mut self, _: &mut T) -> Result<(String, MessageType, i32)> {
@@ -229,14 +229,6 @@ impl Protocol for MockProtocol {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProtocolAction {
-    // TODO: Confirm if we need this variant/type at all.
-    #[allow(dead_code)]
-    Read(SerAction),
-    Write(SerAction)
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum SerAction {
     Message(Action<(String, MessageType, i32)>),
     Struct(Action<String>),
     Field(Action<(String, Type, i16)>),
@@ -247,7 +239,7 @@ pub enum SerAction {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum Action<B> { Begin(B), End, Stop }
+pub enum Action<B> { Begin(B), End }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Primitive {

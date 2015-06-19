@@ -169,6 +169,7 @@ macro_rules! strukt {
                     try!(protocol.write_field_end(transport));
                 })*
 
+                try!(protocol.write_field_stop(transport));
                 try!(protocol.write_struct_end(transport));
 
                 Ok(())
@@ -190,7 +191,6 @@ macro_rules! strukt {
                     let (_, typ, id) = try!(protocol.read_field_begin(transport));
 
                     if typ == $crate::protocol::Type::Stop {
-                        try!(protocol.read_field_end(transport));
                         break;
                     } $(else if (typ, id) == (<$fty as ThriftTyped>::typ(), $id) {
                         try!(self.$fname.decode(protocol, transport));
@@ -227,6 +227,7 @@ macro_rules! strukt {
                 use $crate::Protocol;
 
                 try!(protocol.write_struct_begin(transport, stringify!($name)));
+                try!(protocol.write_field_stop(transport));
                 try!(protocol.write_struct_end(transport));
 
                 Ok(())
@@ -240,6 +241,12 @@ macro_rules! strukt {
                 use $crate::Protocol;
 
                 try!(protocol.read_struct_begin(transport));
+
+                let (_, ty, _) = try!(protocol.read_field_begin(transport));
+                if ty != $crate::protocol::Type::Stop {
+                     return Err($crate::Error::from($crate::protocol::Error::ProtocolViolation))
+                }
+
                 try!(protocol.read_struct_end(transport));
 
                 Ok(())

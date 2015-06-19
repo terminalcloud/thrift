@@ -32,3 +32,14 @@ strukt! {
          three: Vec<Simple> => 9,
      }
 }
+
+enom! {
+    name = Operation,
+    values = [
+        Add = 1,
+        Sub = 2,
+        Clear = 3,
+    ],
+    default = Sub
+}
+
