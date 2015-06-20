@@ -1,6 +1,8 @@
 use test::*;
 use mock::*;
 
+use protocol::Type;
+
 macro_rules! test_prim_encode {
     ($({ $testname:ident, $iter:expr, $variant:ident, $T:ty }),*) => {$(
         #[test]
@@ -25,5 +27,25 @@ test_prim_encode! {
         String::from("garbage"),
         String::from("unicode \u{2600}\u{2601}")
     ], PString, String }
+}
+
+#[test]
+fn test_list() {
+    let list = vec![5, 6, 2, 3, 45, 56, 6];
+    let mut protocol = encode(&list);
+
+    assert_eq!(protocol.log(), &[
+        List(Begin((Type::I32, list.len()))),
+        Prim(I32(5)),
+        Prim(I32(6)),
+        Prim(I32(2)),
+        Prim(I32(3)),
+        Prim(I32(45)),
+        Prim(I32(56)),
+        Prim(I32(6)),
+        List(End)
+    ]);
+
+    assert_eq!(list, decode::<Vec<i32>>(&mut protocol));
 }
 
