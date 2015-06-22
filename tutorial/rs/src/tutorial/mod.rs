@@ -33,28 +33,42 @@ strukt! {
   }
 }
 
+strukt! {
+  name = InvalidOperation,
+  fields = {
+    what_op: i32 => 1,
+    why: String => 2,
+  }
+}
+
 service! {
   trait_name = Calculator,
   processor_name = CalculatorProcessor,
   client_name = CalculatorClient,
   service_methods = [
     CalculatorPingArgs -> CalculatorPingResult = a.ping(
-    ) -> (),
+    ) -> () => [
+    ],
     CalculatorAddArgs -> CalculatorAddResult = a.add(
       num1: i32 => 1,
       num2: i32 => 2,
-    ) -> i32,
+    ) -> i32 => [
+    ],
     CalculatorCalculateArgs -> CalculatorCalculateResult = a.calculate(
       logid: i32 => 1,
       w: Work => 2,
-    ) -> i32,
+    ) -> i32 => [
+      ouch: InvalidOperation => 1,
+    ],
     CalculatorZipArgs -> CalculatorZipResult = a.zip(
-    ) -> (),
+    ) -> () => [
+    ],
   ],
   parent_methods = [
     SharedServiceGetStructArgs -> SharedServiceGetStructResult = b.getStruct(
       key: i32 => 1,
-    ) -> SharedStruct,
+    ) -> SharedStruct => [
+    ],
   ],
   bounds = [A: Calculator, B: SharedService, ],
   fields = [a: A, b: B, ]

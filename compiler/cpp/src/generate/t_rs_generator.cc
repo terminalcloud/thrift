@@ -72,6 +72,7 @@ class t_rs_generator : public t_oop_generator {
   void generate_service_generics(t_service* tservice);
   void generate_service_fields(t_service* tservice);
   void generate_service_methods(char field, t_service* tservice);
+  void generate_service_method_arglist(const vector<t_field*>& fields);
   void generate_service_uses(t_service* tservice);
 
   /**
@@ -169,12 +170,7 @@ void t_rs_generator::generate_program() {
   vector<t_struct*> objects = program_->get_objects();
   vector<t_struct*>::iterator o_iter;
   for (o_iter = objects.begin(); o_iter != objects.end(); ++o_iter) {
-    if ((*o_iter)->is_xception()) {
-      // TODO: Implement exception generation.
-      // generate_xception(*o_iter);
-    } else {
-      generate_struct(*o_iter);
-    }
+    generate_struct(*o_iter);
   }
 
   // Generate constants
@@ -354,19 +350,18 @@ void t_rs_generator::generate_service_methods(char field, t_service* tservice) {
 
         indent(f_mod_) << argname << " -> " << resname << " = "
           << field << "." << tfunction->get_name() << "(\n";
+
         indent_up();
-
-        const vector<t_field*>& fields = tfunction->get_arglist()->get_members();
-        vector<t_field*>::const_iterator field_iter;
-        for (field_iter = fields.begin(); field_iter != fields.end(); ++field_iter) {
-            t_field* tfield = *field_iter;
-            indent(f_mod_) << to_field_name(tfield->get_name())
-              << ": " << render_rs_type(tfield->get_type())
-              << " => " << tfield->get_key() << ",\n";
-        }
-
+        generate_service_method_arglist(tfunction->get_arglist()->get_members());
         indent_down();
-        indent(f_mod_) << ") -> " << render_rs_type(tfunction->get_returntype()) << ",\n";
+
+        indent(f_mod_) << ") -> " << render_rs_type(tfunction->get_returntype()) << " => [\n";
+
+        indent_up();
+        generate_service_method_arglist(tfunction->get_xceptions()->get_members());
+        indent_down();
+
+        indent(f_mod_) << "],\n";
     }
 }
 
@@ -394,6 +389,16 @@ void t_rs_generator::generate_service_fields(t_service* tservice) {
   }
 }
 
+void t_rs_generator::generate_service_method_arglist(const vector<t_field*>& fields) {
+    vector<t_field*>::const_iterator field_iter;
+    for (field_iter = fields.begin(); field_iter != fields.end(); ++field_iter) {
+        t_field* tfield = *field_iter;
+        indent(f_mod_) << to_field_name(tfield->get_name())
+            << ": " << render_rs_type(tfield->get_type())
+            << " => " << tfield->get_key() << ",\n";
+    }
+}
+
 void t_rs_generator::generate_service_uses(t_service* tservice) {
   t_service* service = tservice->get_extends();
   while (service) {
@@ -404,11 +409,7 @@ void t_rs_generator::generate_service_uses(t_service* tservice) {
 }
 
 // Renders a rust type representing the passed in type.
-string t_rs_generator::render_rs_type(t_type* type, bool optional) {
-  if (optional) {
-    return "Option<" + render_rs_type(type, false) + ">";
-  }
-
+string t_rs_generator::render_rs_type(t_type* type) {
   type = get_true_type(type);
 
   if (type->is_base_type()) {

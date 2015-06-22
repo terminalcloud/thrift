@@ -37,36 +37,32 @@ pub fn main() {
     println!("ping()");
 
     // Add
-    println!("1 + 1 = {}", client.add(1, 1).unwrap());
+    println!("1 + 1 = {}", client.add(1, 1).unwrap().success.unwrap());
 
-    // TODO: Add this back in when exceptions are implemented
     // Work: divide
-    // let work = tutorial::Work {
-    //   op: tutorial::Operation::DIVIDE,
-    //   num1: 1,
-    //   num2: 0,
-    //   comment: None };
-    //
-    // match client.calculate(1, work) {
-    //   Ok(_) => {
-    //     println!("Whoa? We can divide by zero!");
-    //   }
-    //   Err(_) => {
-    //     // FIXME: use thrift exceptions
-    //     println!("Invalid operation")
-    //   }
-    // }
+    let work = tutorial::Work {
+        op: Some(tutorial::Operation::DIVIDE),
+        num1: Some(1),
+        num2: Some(0),
+        comment: None
+    };
+
+    println!("{:?}", client.calculate(1, work.clone()).unwrap());
+    let error = client.calculate(1, work).unwrap().ouch.unwrap();
+    println!("Error! {:?}", error);
 
     // Work: subtract
     let work = tutorial::Work {
-        op: tutorial::Operation::SUBTRACT,
-        num1: 15,
-        num2: 10,
-        comment: None };
-    println!("15 - 10 = {}", client.calculate(1, work).ok().unwrap());
+        op: Some(tutorial::Operation::SUBTRACT),
+        num1: Some(15),
+        num2: Some(10),
+        comment: None
+    };
+    println!("15 - 10 = {}", client.calculate(1, work).ok().unwrap().success.unwrap());
 
-    let ss = client.getStruct(1).ok().unwrap();
-    println!("Received log: {}", ss.value);
+    let ss = client.getStruct(1).ok().unwrap().success.unwrap();
+    println!("Received log: {:?}", ss);
 
     println!("PASS");
 }
+

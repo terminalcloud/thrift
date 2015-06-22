@@ -163,7 +163,10 @@ impl<K: Decode + Eq + Hash, V: Decode> Decode for HashMap<K, V> {
 impl<X: Decode> Decode for Option<X> {
     fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        self.as_mut().map(|this| this.decode(protocol, transport)).unwrap_or(Ok(()))
+        let mut this = X::default();
+        try!(this.decode(protocol, transport));
+        *self = Some(this);
+        Ok(())
     }
 }
 

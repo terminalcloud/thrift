@@ -3,26 +3,26 @@ macro_rules! service {
     (trait_name = $name:ident,
      processor_name = $processor_name:ident,
      client_name = $client_name:ident,
-     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
-     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*],
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty => [$($sename:ident: $sety:ty => $seid:expr,)*],)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty => [$($pename:ident: $pety:ty => $peid:expr,)*],)*],
      bounds = [$($boundty:ident: $bound:ident,)*],
      fields = [$($fname:ident: $fty:ty,)*]) => {
         pub trait $name {
-            $(fn $smname(&self, $($saname: $saty),*) -> $srty;)*
+            $(fn $smname(&self, $($saname: $saty),*) -> $soname;)*
         }
 
         service_processor! {
             processor_name = $processor_name,
-            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*],
-            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*],
+            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty => [$($sename: $sety => $seid,)*],)*],
+            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty => [$($pename: $pety => $peid,)*],)*],
             bounds = [$($boundty: $bound,)*],
             fields = [$($fname: $fty,)*]
         }
 
         service_client! {
             client_name = $client_name,
-            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*],
-            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*]
+            service_methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty => [$($sename: $sety => $seid,)*],)*],
+            parent_methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty => [$($pename: $pety => $peid,)*],)*]
         }
     }
 }
@@ -30,8 +30,8 @@ macro_rules! service {
 #[macro_export]
 macro_rules! service_processor {
     (processor_name = $name:ident,
-     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
-     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*],
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty => [$($sename:ident: $sety:ty => $seid:expr,)*],)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty => [$($pename:ident: $pety:ty => $peid:expr,)*],)*],
      bounds = [$($boundty:ident: $bound:ident,)*],
      fields = [$($fname:ident: $fty:ty,)*]) => {
         pub struct $name<$($boundty: $bound),*> {
@@ -40,7 +40,7 @@ macro_rules! service_processor {
         }
 
         $(strukt! { name = $siname, fields = { $($saname: $saty => $said,)* } }
-          strukt! { name = $soname, fields = { success: $srty => 0, } })*
+          strukt! { name = $soname, fields = { success: $srty => 0, $($sename: $sety => $seid,)* } })*
 
         impl<$($boundty: $bound),*> $name<$($boundty),*> {
             pub fn new($($fname: $fty),*) -> Self {
@@ -56,8 +56,8 @@ macro_rules! service_processor {
                 }
             }
 
-            service_processor_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*] }
-            service_processor_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*] }
+            service_processor_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty => [$($sename: $sety => $seid,)*],)*] }
+            service_processor_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty => [$($pename: $pety => $peid,)*],)*] }
         }
 
         impl<P: $crate::Protocol, T: $crate::Transport, $($boundty: $bound),*> $crate::Processor<P, T> for $name<$($boundty),*> {
@@ -74,7 +74,7 @@ macro_rules! service_processor {
 
 #[macro_export]
 macro_rules! service_processor_methods {
-    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty,)*]) => {
+    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty => [$($ename:ident: $ety:ty => $eid:expr,)*],)*]) => {
         $(fn $mname<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
                                                                ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
             static MNAME: &'static str = stringify!($mname);
@@ -83,9 +83,8 @@ macro_rules! service_processor_methods {
             try!($crate::protocol::helpers::receive_body(prot, transport, MNAME,
                                                          &mut args, MNAME, ty, id));
 
-            let mut result = $oname::default();
-            result.success = self.$fname.$mname($(args.$aname),*);
-
+            // TODO: Further investigate this unwrap.
+            let result = self.$fname.$mname($(args.$aname.unwrap()),*);
             try!($crate::protocol::helpers::send(prot, transport, MNAME,
                                                  $crate::protocol::MessageType::Reply, &result));
 
@@ -97,8 +96,8 @@ macro_rules! service_processor_methods {
 #[macro_export]
 macro_rules! service_client {
     (client_name = $client_name:ident,
-     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty,)*],
-     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty,)*]) => {
+     service_methods = [$($siname:ident -> $soname:ident = $smfname:ident.$smname:ident($($saname:ident: $saty:ty => $said:expr,)*) -> $srty:ty => [$($sename:ident: $sety:ty => $seid:expr,)*],)*],
+     parent_methods = [$($piname:ident -> $poname:ident = $pmfname:ident.$pmname:ident($($paname:ident: $paty:ty => $paid:expr,)*) -> $prty:ty => [$($pename:ident: $pety:ty => $peid:expr,)*],)*]) => {
         pub struct $client_name<P: $crate::Protocol, T: $crate::Transport> {
             pub protocol: P,
             pub transport: T
@@ -112,20 +111,20 @@ macro_rules! service_client {
                 }
             }
 
-            service_client_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty,)*] }
-            service_client_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty,)*] }
+            service_client_methods! { methods = [$($siname -> $soname = $smfname.$smname($($saname: $saty => $said,)*) -> $srty => [$($sename: $sety => $seid,)*],)*] }
+            service_client_methods! { methods = [$($piname -> $poname = $pmfname.$pmname($($paname: $paty => $paid,)*) -> $prty => [$($pename: $pety => $peid,)*],)*] }
         }
     }
 }
 
 #[macro_export]
 macro_rules! service_client_methods {
-    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty,)*]) => {
-        $(pub fn $mname(&mut self, $($aname: $aty,)*) -> $crate::Result<$rty> {
+    (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty => [$($ename:ident: $ety:ty => $eid:expr,)*],)*]) => {
+        $(pub fn $mname(&mut self, $($aname: $aty,)*) -> $crate::Result<$oname> {
             static MNAME: &'static str = stringify!($mname);
 
             let mut args = $iname::default();
-            $(args.$aname = $aname;)*
+            $(args.$aname = Some($aname);)*
             try!($crate::protocol::helpers::send(&mut self.protocol, &mut self.transport,
                                                  MNAME, $crate::protocol::MessageType::Call, &mut args));
 
@@ -133,7 +132,7 @@ macro_rules! service_client_methods {
             try!($crate::protocol::helpers::receive(&mut self.protocol, &mut self.transport,
                                                     MNAME, &mut result));
 
-            Ok(result.success)
+            Ok(result)
         })*
     }
 }
@@ -144,10 +143,8 @@ macro_rules! strukt {
      fields = { $($fname:ident: $fty:ty => $id:expr,)+ }) => {
         #[derive(Debug, Clone, Default)]
         pub struct $name {
-            $(pub $fname: $fty,)+
+            $(pub $fname: Option<$fty>,)+
         }
-
-        impl $crate::Exists for $name {}
 
         impl $crate::protocol::ThriftTyped for $name {
             fn typ() -> $crate::protocol::Type { $crate::protocol::Type::Struct }
@@ -159,13 +156,13 @@ macro_rules! strukt {
                 #[allow(unused_imports)]
                 use $crate::protocol::{Encode, ThriftTyped};
                 #[allow(unused_imports)]
-                use $crate::{Protocol, Exists};
+                use $crate::{Protocol};
 
                 try!(protocol.write_struct_begin(transport, stringify!($name)));
 
-                $(if self.$fname.exists() {
+                $(if let Some(ref x) = self.$fname {
                     try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
-                    try!(self.$fname.encode(protocol, transport));
+                    try!(x.encode(protocol, transport));
                     try!(protocol.write_field_end(transport));
                 })*
 
@@ -184,7 +181,6 @@ macro_rules! strukt {
                 #[allow(unused_imports)]
                 use $crate::Protocol;
 
-                let mut has_result = false;
                 try!(protocol.read_struct_begin(transport));
 
                 loop {
@@ -194,7 +190,6 @@ macro_rules! strukt {
                         break;
                     } $(else if (typ, id) == (<$fty as ThriftTyped>::typ(), $id) {
                         try!(self.$fname.decode(protocol, transport));
-                        has_result = true;
                     })* else {
                         try!(protocol.skip(transport, typ));
                     }
@@ -204,11 +199,7 @@ macro_rules! strukt {
 
                 try!(protocol.read_struct_end(transport));
 
-                if has_result {
-                    Ok(())
-                } else {
-                    Err($crate::Error::from($crate::protocol::Error::ProtocolViolation))
-                }
+                Ok(())
             }
         }
     };
@@ -265,8 +256,6 @@ macro_rules! enom {
         pub enum $name {
             $($vname = $val),*
         }
-
-        impl $crate::Exists for $name {}
 
         impl Default for $name {
             fn default() -> Self { $name::$dname }

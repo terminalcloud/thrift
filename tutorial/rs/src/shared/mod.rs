@@ -24,7 +24,8 @@ service! {
   service_methods = [
     SharedServiceGetStructArgs -> SharedServiceGetStructResult = a.getStruct(
       key: i32 => 1,
-    ) -> SharedStruct,
+    ) -> SharedStruct => [
+    ],
   ],
   parent_methods = [
   ],

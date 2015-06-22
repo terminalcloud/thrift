@@ -39,7 +39,7 @@ pub fn main() {
             println!("arg: {}", t);
             t
         }
-        _ => 2000
+        _ => 1000000
     };
 
     let mut client = tutorial::CalculatorClient::new(
