@@ -1,4 +1,3 @@
-#![feature(optin_builtin_traits)]
 extern crate podio;
 
 #[macro_use]
