@@ -162,7 +162,7 @@ macro_rules! strukt {
 
                 $(if let Some(ref x) = self.$fname {
                     try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
-                    try!(x.encode(protocol, transport));
+                    try!($crate::protocol::Encode::encode(x, protocol, transport));
                     try!(protocol.write_field_end(transport));
                 })*
 
@@ -189,7 +189,7 @@ macro_rules! strukt {
                     if typ == $crate::protocol::Type::Stop {
                         break;
                     } $(else if (typ, id) == (<$fty as ThriftTyped>::typ(), $id) {
-                        try!(self.$fname.decode(protocol, transport));
+                        try!($crate::protocol::Decode::decode(&mut self.$fname, protocol, transport));
                     })* else {
                         try!(protocol.skip(transport, typ));
                     }
