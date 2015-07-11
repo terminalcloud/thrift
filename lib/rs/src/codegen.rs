@@ -77,6 +77,7 @@ macro_rules! service_processor {
 macro_rules! service_processor_error_enum {
     ($senname:ident = []) => {};
     ($senname:ident = [$($sevname:ident($sename:ident: $sety:ty => $seid:expr),)+]) => {
+        #[derive(Debug, Clone)]
         pub enum $senname {
             $(
                 $sevname($sety),
