@@ -37,7 +37,7 @@ pub fn main() {
     println!("ping()");
 
     // Add
-    println!("1 + 1 = {}", client.add(1, 1).unwrap().success.unwrap());
+    println!("1 + 1 = {}", client.add(1, 1).unwrap());
 
     // Work: divide
     let work = tutorial::Work {
@@ -48,7 +48,7 @@ pub fn main() {
     };
 
     println!("{:?}", client.calculate(1, work.clone()).unwrap());
-    let error = client.calculate(1, work).unwrap().ouch.unwrap();
+    let error = client.calculate(1, work).unwrap().err().unwrap();
     println!("Error! {:?}", error);
 
     // Work: subtract
@@ -58,9 +58,9 @@ pub fn main() {
         num2: Some(10),
         comment: None
     };
-    println!("15 - 10 = {}", client.calculate(1, work).ok().unwrap().success.unwrap());
+    println!("15 - 10 = {}", client.calculate(1, work).unwrap().unwrap());
 
-    let ss = client.getStruct(1).ok().unwrap().success.unwrap();
+    let ss = client.getStruct(1).unwrap();
     println!("Received log: {:?}", ss);
 
     println!("PASS");

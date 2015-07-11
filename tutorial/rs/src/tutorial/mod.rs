@@ -29,7 +29,7 @@ strukt! {
     num1: i32 => 1,
     num2: i32 => 2,
     op: Operation => 3,
-    comment: Option<String> => 4,
+    comment: String => 4,
   }
 }
 
@@ -47,28 +47,28 @@ service! {
   client_name = CalculatorClient,
   service_methods = [
     CalculatorPingArgs -> CalculatorPingResult = a.ping(
-    ) -> () => [
-    ],
+    ) -> () => CalculatorPingError = [
+    ] (()),
     CalculatorAddArgs -> CalculatorAddResult = a.add(
       num1: i32 => 1,
       num2: i32 => 2,
-    ) -> i32 => [
-    ],
+    ) -> i32 => CalculatorAddError = [
+    ] (i32),
     CalculatorCalculateArgs -> CalculatorCalculateResult = a.calculate(
       logid: i32 => 1,
       w: Work => 2,
-    ) -> i32 => [
-      ouch: InvalidOperation => 1,
-    ],
+    ) -> i32 => CalculatorCalculateError = [
+      Ouch(ouch: InvalidOperation => 1),
+    ] (Result<i32, CalculatorCalculateError>),
     CalculatorZipArgs -> CalculatorZipResult = a.zip(
-    ) -> () => [
-    ],
+    ) -> () => CalculatorZipError = [
+    ] (()),
   ],
   parent_methods = [
     SharedServiceGetStructArgs -> SharedServiceGetStructResult = b.getStruct(
       key: i32 => 1,
-    ) -> SharedStruct => [
-    ],
+    ) -> SharedStruct => SharedServiceGetStructError = [
+    ] (SharedStruct),
   ],
   bounds = [A: Calculator, B: SharedService, ],
   fields = [a: A, b: B, ]

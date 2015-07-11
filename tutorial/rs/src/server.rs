@@ -43,17 +43,16 @@ struct CalculatorHandler {
 }
 
 impl<'a> Calculator for &'a CalculatorHandler {
-    fn ping(&self) -> CalculatorPingResult {
+    fn ping(&self) {
         println!("ping()");
-        CalculatorPingResult { success: Some(()) }
     }
 
-    fn add(&self, n1: i32, n2: i32) -> CalculatorAddResult {
+    fn add(&self, n1: i32, n2: i32) -> i32 {
         println!("add({}, {})", n1, n2);
-        CalculatorAddResult { success: Some(n1 + n2) }
+        n1 + n2
     }
 
-    fn calculate(&self, log_id: i32, work: Work) -> CalculatorCalculateResult {
+    fn calculate(&self, log_id: i32, work: Work) -> Result<i32, CalculatorCalculateError> {
         println!("calculate({}, {:?})", log_id, work);
 
         let num1 = work.num1.unwrap();
@@ -65,13 +64,10 @@ impl<'a> Calculator for &'a CalculatorHandler {
             Operation::MULTIPLY => num1 * num2,
             Operation::DIVIDE => {
                 if num2 == 0 {
-                    return CalculatorCalculateResult {
-                        success: None,
-                        ouch: Some(InvalidOperation {
-                            what_op: work.op.map(|x| x as i32),
-                            why: Some("Cannot divide by 0".into())
-                        })
-                    };
+                    return Err(CalculatorCalculateError::Ouch(InvalidOperation {
+                        what_op: work.op.map(|x| x as i32),
+                        why: Some("Cannot divide by 0".into())
+                    }))
                 }
 
                 num1 / num2
@@ -81,19 +77,18 @@ impl<'a> Calculator for &'a CalculatorHandler {
         let ss = SharedStruct { key: Some(log_id), value: Some(val.to_string()) };
         self.log.borrow_mut().insert(log_id, ss);
 
-        CalculatorCalculateResult { success: Some(val), ouch: None }
+        Ok(val)
     }
 
-    fn zip(&self) -> CalculatorZipResult {
+    fn zip(&self) {
         println!("zip");
-        CalculatorZipResult { success: Some(()) }
     }
 }
 
 impl<'a> SharedService for &'a CalculatorHandler {
-    fn getStruct(&self, log_id: i32) -> SharedServiceGetStructResult {
+    fn getStruct(&self, log_id: i32) -> SharedStruct {
         println!("getStruct({})", log_id);
-        SharedServiceGetStructResult { success: Some(self.log.borrow()[&log_id].clone()) }
+        self.log.borrow()[&log_id].clone()
     }
 }
 

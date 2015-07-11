@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, non_camel_case_types)]
 use std::collections::{HashSet, HashMap};
 
 strukt! {
@@ -35,7 +35,7 @@ service! {
     processor_name = SharedServiceProcessor,
     client_name = SharedServiceClient,
     service_methods = [
-        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested => [],
+        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested => SharedServiceGetStructError = [] (DeeplyNested),
     ],
     parent_methods = [],
     bounds = [S: SharedService,],
@@ -50,10 +50,10 @@ service! {
          ChildServiceOperationArgs -> ChildServiceOperationResult = child.operation(
              one: String => 2,
              another: i32 => 3,
-         ) -> Operation => [],
+         ) -> Operation => ChildServiceOperationError = [] (Operation),
      ],
      parent_methods = [
-        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested => [],
+        SharedServiceGetStructArgs -> SharedServiceGetStructResult = shared.get_struct(key: i32 => 1,) -> DeeplyNested => SharedServiceGetStructError = [] (DeeplyNested),
      ],
      bounds = [S: SharedService, C: ChildService,],
      fields = [shared: S, child: C,]
@@ -72,7 +72,7 @@ service! {
     processor_name = ServiceWithExceptionProcessor,
     client_name = ServiceWithExceptionClient,
     service_methods = [
-        ServiceWithExceptionOperationArgs -> ServiceWithExceptionOperationResult = this.operation() -> i32 => [bad: Exception => 1,],
+        ServiceWithExceptionOperationArgs -> ServiceWithExceptionOperationResult = this.operation() -> i32 => ServiceWithExceptionOperationError = [Bad(bad: Exception => 1),] (Result<i32, ServiceWithExceptionOperationError>),
     ],
     parent_methods = [],
     bounds = [S: ServiceWithException,],

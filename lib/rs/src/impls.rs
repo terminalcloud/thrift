@@ -12,6 +12,7 @@ impl ThriftTyped for i64 { fn typ() -> Type { Type::I64 } }
 impl ThriftTyped for f64 { fn typ() -> Type { Type::Double } }
 impl ThriftTyped for () { fn typ() -> Type { Type::Void } }
 impl ThriftTyped for String { fn typ() -> Type { Type::String } }
+impl ThriftTyped for Vec<u8> { fn typ() -> Type { Type::String } }
 impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ() -> Type { Type::List } }
 impl<T: ThriftTyped> ThriftTyped for Option<T> { fn typ() -> Type { T::typ() } }
 impl<T: ThriftTyped> ThriftTyped for HashSet<T> { fn typ() -> Type { Type::Set } }
@@ -74,6 +75,14 @@ impl Encode for String {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         try!(protocol.write_string(transport, self));
+        Ok(())
+    }
+}
+
+impl Encode for Vec<u8> {
+    fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        try!(protocol.write_binary(transport, self));
         Ok(())
     }
 }
@@ -190,6 +199,7 @@ macro_rules! prim_decode {
 prim_decode! {
     bool => read_bool, i8 => read_byte, i16 => read_i16,
     i32 => read_i32, i64 => read_i64, f64 => read_double,
-    String => read_string
+    String => read_string,
+    Vec<u8> => read_binary
 }
 
