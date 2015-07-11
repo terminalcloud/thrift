@@ -73,6 +73,7 @@ class t_rs_generator : public t_oop_generator {
   void generate_service_fields(t_service* tservice);
   void generate_service_methods(char field, t_service* tservice);
   void generate_service_method_arglist(const vector<t_field*>& fields);
+  void generate_service_method_error_variants(const vector<t_field*>& fields);
   void generate_service_uses(t_service* tservice);
 
   /**
@@ -346,6 +347,7 @@ void t_rs_generator::generate_service_methods(char field, t_service* tservice) {
     for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
         t_function* tfunction = *f_iter;
         const string argname = sname + pascalcase(tfunction->get_name()) + "Args";
+        const string errname = sname + pascalcase(tfunction->get_name()) + "Error";
         const string resname = sname + pascalcase(tfunction->get_name()) + "Result";
 
         indent(f_mod_) << argname << " -> " << resname << " = "
@@ -355,13 +357,20 @@ void t_rs_generator::generate_service_methods(char field, t_service* tservice) {
         generate_service_method_arglist(tfunction->get_arglist()->get_members());
         indent_down();
 
-        indent(f_mod_) << ") -> " << render_rs_type(tfunction->get_returntype()) << " => [\n";
+        indent(f_mod_) << ") -> " << render_rs_type(tfunction->get_returntype()) << " => "
+          << errname << " = [\n"; 
 
         indent_up();
-        generate_service_method_arglist(tfunction->get_xceptions()->get_members());
+        generate_service_method_error_variants(tfunction->get_xceptions()->get_members());
         indent_down();
 
-        indent(f_mod_) << "],\n";
+        string rettype = render_rs_type(tfunction->get_returntype());
+
+	if (tfunction->get_xceptions()->get_members().size() > 0) {
+          rettype = "Result<" + rettype + ", " + errname + ">";
+	}
+
+        indent(f_mod_) << "] (" << rettype << "),\n";
     }
 }
 
@@ -396,6 +405,17 @@ void t_rs_generator::generate_service_method_arglist(const vector<t_field*>& fie
         indent(f_mod_) << to_field_name(tfield->get_name())
             << ": " << render_rs_type(tfield->get_type())
             << " => " << tfield->get_key() << ",\n";
+    }
+}
+
+void t_rs_generator::generate_service_method_error_variants(const vector<t_field*>& fields) {
+    vector<t_field*>::const_iterator field_iter;
+    for (field_iter = fields.begin(); field_iter != fields.end(); ++field_iter) {
+        t_field* tfield = *field_iter;
+        const string variant = pascalcase(to_field_name(tfield->get_name()));
+        indent(f_mod_) << variant << "(" << to_field_name(tfield->get_name())
+            << ": " << render_rs_type(tfield->get_type())
+            << " => " << tfield->get_key() << "),\n";
     }
 }
 
