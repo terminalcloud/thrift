@@ -86,7 +86,8 @@ macro_rules! service_processor_methods {
             // TODO: Further investigate this unwrap.
             let result = self.$fname.$mname($(args.$aname.unwrap()),*);
             try!($crate::protocol::helpers::send(prot, transport, MNAME,
-                                                 $crate::protocol::MessageType::Reply, &result));
+                                                 $crate::protocol::MessageType::Reply, &result,
+                                                 id));
 
             Ok(())
         })*
@@ -126,7 +127,8 @@ macro_rules! service_client_methods {
             let mut args = $iname::default();
             $(args.$aname = Some($aname);)*
             try!($crate::protocol::helpers::send(&mut self.protocol, &mut self.transport,
-                                                 MNAME, $crate::protocol::MessageType::Call, &mut args));
+                                                 MNAME, $crate::protocol::MessageType::Call, &mut args,
+                                                 0));
 
             let mut result = $oname::default();
             try!($crate::protocol::helpers::receive(&mut self.protocol, &mut self.transport,

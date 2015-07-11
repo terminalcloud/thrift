@@ -241,9 +241,8 @@ pub mod helpers {
 
     pub fn send<W, T, P>(protocol: &mut P, transport: &mut T,
                          name: &str, _type: MessageType,
-                         args: &W) -> Result<()>
+                         args: &W, cseqid: i32) -> Result<()>
     where W: Encode, T: Transport, P: Protocol {
-        let cseqid: i32 = 0;
         try!(protocol.write_message_begin(transport, name, _type, cseqid));
         try!(args.encode(protocol, transport));
         try!(protocol.write_message_end(transport));
