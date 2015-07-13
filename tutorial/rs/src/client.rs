@@ -41,9 +41,9 @@ pub fn main() {
 
     // Work: divide
     let work = tutorial::Work {
-        op: Some(tutorial::Operation::DIVIDE),
-        num1: Some(1),
-        num2: Some(0),
+        op: tutorial::Operation::DIVIDE,
+        num1: 1,
+        num2: 0,
         comment: None
     };
 
@@ -53,9 +53,9 @@ pub fn main() {
 
     // Work: subtract
     let work = tutorial::Work {
-        op: Some(tutorial::Operation::SUBTRACT),
-        num1: Some(15),
-        num2: Some(10),
+        op: tutorial::Operation::SUBTRACT,
+        num1: 15,
+        num2: 10,
         comment: None
     };
     println!("15 - 10 = {}", client.calculate(1, work).unwrap().unwrap());

@@ -65,6 +65,10 @@ impl<K: Encode + Hash + Eq, V: Encode> Encode for HashMap<K, V> {
 }
 
 impl<X: Encode> Encode for Option<X> {
+    fn should_encode(&self) -> bool {
+        self.is_some()
+    }
+
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         self.as_ref().map(|this| this.encode(protocol, transport)).unwrap_or(Ok(()))

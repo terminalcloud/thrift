@@ -276,8 +276,13 @@ void t_rs_generator::generate_struct(t_struct* tstruct) {
   const vector<t_field*>& members = tstruct->get_members();
   for (m_iter = members.begin(); m_iter != members.end(); ++m_iter) {
     t_field* tfield = *m_iter;
+    string type = render_rs_type(tfield->get_type());
+    // like the Java generator, "default" requiredness is treated as required
+    if (tfield->get_req() == t_field::T_OPTIONAL) {
+      type = "Option<" + type + ">";
+    }
     indent(f_mod_) << to_field_name(tfield->get_name())
-      << ": " << render_rs_type(tfield->get_type())
+      << ": " << type
       << " => " << tfield->get_key() << ",\n";
   }
 

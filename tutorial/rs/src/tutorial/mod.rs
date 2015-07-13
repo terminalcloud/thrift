@@ -29,7 +29,7 @@ strukt! {
     num1: i32 => 1,
     num2: i32 => 2,
     op: Operation => 3,
-    comment: String => 4,
+    comment: Option<String> => 4,
   }
 }
 

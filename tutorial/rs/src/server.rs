@@ -55,18 +55,18 @@ impl<'a> Calculator for &'a CalculatorHandler {
     fn calculate(&self, log_id: i32, work: Work) -> Result<i32, CalculatorCalculateError> {
         println!("calculate({}, {:?})", log_id, work);
 
-        let num1 = work.num1.unwrap();
-        let num2 = work.num2.unwrap();
+        let num1 = work.num1;
+        let num2 = work.num2;
 
-        let val = match work.op.unwrap() {
+        let val = match work.op {
             Operation::ADD => num1 + num2,
             Operation::SUBTRACT => num1 - num2,
             Operation::MULTIPLY => num1 * num2,
             Operation::DIVIDE => {
                 if num2 == 0 {
                     return Err(CalculatorCalculateError::Ouch(InvalidOperation {
-                        what_op: work.op.map(|x| x as i32),
-                        why: Some("Cannot divide by 0".into())
+                        what_op: work.op as i32,
+                        why: "Cannot divide by 0".into()
                     }))
                 }
 
@@ -74,7 +74,7 @@ impl<'a> Calculator for &'a CalculatorHandler {
             }
         };
 
-        let ss = SharedStruct { key: Some(log_id), value: Some(val.to_string()) };
+        let ss = SharedStruct { key: log_id, value: val.to_string() };
         self.log.borrow_mut().insert(log_id, ss);
 
         Ok(val)
