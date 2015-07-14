@@ -6,7 +6,7 @@ use protocol::Type;
 
 #[test]
 fn test_simple_struct() {
-    let instance = Simple { key: Some(String::from("Hello World!")) };
+    let instance = Simple { key: String::from("Hello World!") };
     let mut protocol = encode(&instance);
 
     assert_eq!(protocol.log(), &[
@@ -38,12 +38,12 @@ fn test_empty_struct() {
 #[test]
 fn test_recursive_struct() {
     let instance = Recursive {
-        recurse: Some(vec![
-            Recursive { recurse: Some(vec![]) },
-            Recursive { recurse: Some(vec![
-                Recursive { recurse: Some(vec![]) }
-            ]) }
-        ])
+        recurse: vec![
+            Recursive { recurse: vec![] },
+            Recursive { recurse: vec![
+                Recursive { recurse: vec![] }
+            ] }
+        ]
     };
 
     let mut protocol = encode(&instance);
@@ -86,11 +86,11 @@ fn test_recursive_struct() {
     assert_recursive_equal(instance, decode(&mut protocol));
 
     fn assert_recursive_equal(first: Recursive, second: Recursive) {
-        if first.recurse.as_ref().unwrap().len() != second.recurse.as_ref().unwrap().len() {
+        if first.recurse.len() != second.recurse.len() {
              panic!("different recurse lengths")
         }
 
-        for (one, two) in first.recurse.unwrap().into_iter().zip(second.recurse.unwrap().into_iter()) {
+        for (one, two) in first.recurse.into_iter().zip(second.recurse.into_iter()) {
             assert_recursive_equal(one, two);
         }
     }
@@ -99,7 +99,7 @@ fn test_recursive_struct() {
 #[test]
 fn test_nested_list_in_struct() {
     let instance = Nested {
-        nested: Some(vec![vec![vec![Simple { key: Some(String::from("Hello World!")) }]]])
+        nested: vec![vec![vec![Simple { key: String::from("Hello World!") }]]]
     };
     let mut protocol = encode(&instance);
 
@@ -124,15 +124,15 @@ fn test_nested_list_in_struct() {
     ]);
 
     let second = decode::<Nested>(&mut protocol);
-    assert_eq!(instance.nested.unwrap()[0][0][0].key, second.nested.unwrap()[0][0][0].key);
+    assert_eq!(instance.nested[0][0][0].key, second.nested[0][0][0].key);
 }
 
 #[test]
 fn test_struct_with_many_fields() {
     let instance = Many {
-        one: Some(17),
-        two: Some(String::from("Some String")),
-        three: Some(vec![Simple { key: Some(String::from("A String")) }])
+        one: 17,
+        two: String::from("Some String"),
+        three: vec![Simple { key: String::from("A String") }]
     };
     let mut protocol = encode(&instance);
 
@@ -161,7 +161,7 @@ fn test_struct_with_many_fields() {
     let second = decode::<Many>(&mut protocol);
     assert_eq!(instance.one, second.one);
     assert_eq!(instance.two, second.two);
-    assert_eq!(instance.three.unwrap()[0].key, second.three.unwrap()[0].key);
+    assert_eq!(instance.three[0].key, second.three[0].key);
 }
 
 // #[test]
