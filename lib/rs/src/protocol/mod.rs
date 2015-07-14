@@ -23,6 +23,7 @@ use transport::Transport;
 use Result;
 
 pub mod binary_protocol;
+pub mod compact_protocol;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
