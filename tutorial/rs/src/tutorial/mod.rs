@@ -4,9 +4,9 @@
 // DO NOT EDIT UNLESS YOU ARE SURE YOU KNOW WHAT YOU ARE DOING
 ///////////////////////////////////////////////////////////////
 
-#![allow(unused_mut, dead_code, non_snake_case)]
-#[allow(unused_imports)]
-use std::collections::{HashMap, HashSet};
+#![allow(unused_mut, dead_code, non_snake_case, unused_imports)]
+use ::thrift::rt::OrderedFloat;
+use std::collections::{BTreeMap, BTreeSet};
 
 use shared::*;
 

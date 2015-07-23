@@ -20,5 +20,5 @@ path = "src/benchmark.rs"
 [dependencies]
 bufstream = "0.1"
 
-[dependencies.thrift]
+[dependencies.terminal_thrift]
 path = "../../lib/rs"

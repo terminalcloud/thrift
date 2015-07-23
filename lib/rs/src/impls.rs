@@ -1,8 +1,7 @@
 pub use protocol::{self, Encode, Decode, Type, ThriftTyped};
 pub use {Protocol, Transport, Result, Error};
 
-pub use std::collections::{HashSet, HashMap};
-pub use std::hash::Hash;
+pub use std::collections::{BTreeSet, BTreeMap};
 
 impl ThriftTyped for bool { fn typ() -> Type { Type::Bool } }
 impl ThriftTyped for i8  { fn typ() -> Type { Type::Byte } }
@@ -15,8 +14,8 @@ impl ThriftTyped for String { fn typ() -> Type { Type::String } }
 impl ThriftTyped for Vec<u8> { fn typ() -> Type { Type::String } }
 impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ() -> Type { Type::List } }
 impl<T: ThriftTyped> ThriftTyped for Option<T> { fn typ() -> Type { T::typ() } }
-impl<T: ThriftTyped> ThriftTyped for HashSet<T> { fn typ() -> Type { Type::Set } }
-impl<K: ThriftTyped, V: ThriftTyped> ThriftTyped for HashMap<K, V> { fn typ() -> Type { Type::Map } }
+impl<T: ThriftTyped> ThriftTyped for BTreeSet<T> { fn typ() -> Type { Type::Set } }
+impl<K: ThriftTyped, V: ThriftTyped> ThriftTyped for BTreeMap<K, V> { fn typ() -> Type { Type::Map } }
 
 impl<X: Encode> Encode for Vec<X> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
@@ -33,7 +32,7 @@ impl<X: Encode> Encode for Vec<X> {
     }
 }
 
-impl<X: Encode + Hash + Eq> Encode for HashSet<X> {
+impl<X: Encode + Ord> Encode for BTreeSet<X> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         try!(protocol.write_set_begin(transport, X::typ(), self.len()));
@@ -48,7 +47,7 @@ impl<X: Encode + Hash + Eq> Encode for HashSet<X> {
     }
 }
 
-impl<K: Encode + Hash + Eq, V: Encode> Encode for HashMap<K, V> {
+impl<K: Encode + Ord, V: Encode> Encode for BTreeMap<K, V> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         try!(protocol.write_map_begin(transport, K::typ(), V::typ(), self.len()));
@@ -132,13 +131,12 @@ impl<X: Decode> Decode for Vec<X> {
     }
 }
 
-impl<X: Decode + Eq + Hash> Decode for HashSet<X> {
+impl<X: Decode + Ord> Decode for BTreeSet<X> {
     fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         let (typ, len) = try!(protocol.read_set_begin(transport));
 
         if typ == X::typ() {
-            self.reserve(len as usize);
             for _ in 0..len { self.insert(try!(decode(protocol, transport))); }
             try!(protocol.read_set_end(transport));
             Ok(())
@@ -148,13 +146,12 @@ impl<X: Decode + Eq + Hash> Decode for HashSet<X> {
     }
 }
 
-impl<K: Decode + Eq + Hash, V: Decode> Decode for HashMap<K, V> {
+impl<K: Decode + Ord, V: Decode> Decode for BTreeMap<K, V> {
     fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         let (ktyp, vtyp, len) = try!(protocol.read_map_begin(transport));
 
         if ktyp == K::typ() && vtyp == V::typ() {
-            self.reserve(len as usize);
             for _ in 0..len {
                 let key = try!(decode(protocol, transport));
                 let value = try!(decode(protocol, transport));

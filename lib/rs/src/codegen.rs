@@ -209,7 +209,7 @@ macro_rules! service_client_methods_translate_result {
 macro_rules! strukt {
     (name = $name:ident,
      fields = { $($fname:ident: $fty:ty => $id:expr,)+ }) => {
-        #[derive(Debug, Clone, Default)]
+        #[derive(Debug, Clone, Default, Eq, PartialEq, PartialOrd, Ord)]
         pub struct $name {
             $(pub $fname: Option<$fty>,)+
         }
@@ -319,7 +319,7 @@ macro_rules! enom {
     (name = $name:ident,
      values = [$($vname:ident = $val:expr,)*],
      default = $dname:ident) => {
-        #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Ord, PartialOrd)]
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
         #[repr(i32)]
         pub enum $name {
             $($vname = $val),*

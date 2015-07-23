@@ -18,7 +18,7 @@
  */
 
 #[macro_use]
-extern crate thrift;
+extern crate terminal_thrift as thrift;
 extern crate bufstream;
 
 use std::net::TcpStream;

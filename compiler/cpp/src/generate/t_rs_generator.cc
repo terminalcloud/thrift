@@ -219,9 +219,9 @@ string t_rs_generator::rs_autogen_comment() {
 }
 
 string t_rs_generator::rs_imports() {
-  return string("#![allow(unused_mut, dead_code, non_snake_case)]\n") +
-          "#[allow(unused_imports)]\n" +
-          "use std::collections::{HashMap, HashSet};\n";
+  return string("#![allow(unused_mut, dead_code, non_snake_case, unused_imports)]\n") +
+          "use ::thrift::rt::OrderedFloat;\n" +
+          "use std::collections::{BTreeMap, BTreeSet};\n";
 }
 
 // Generates a type alias, translating a thrift `typedef` to a rust `type`.
@@ -358,7 +358,7 @@ void t_rs_generator::generate_service_methods(char field, t_service* tservice) {
         indent_down();
 
         indent(f_mod_) << ") -> " << render_rs_type(tfunction->get_returntype()) << " => "
-          << errname << " = [\n"; 
+          << errname << " = [\n";
 
         indent_up();
         generate_service_method_error_variants(tfunction->get_xceptions()->get_members());
@@ -450,7 +450,7 @@ string t_rs_generator::render_rs_type(t_type* type) {
     case t_base_type::TYPE_I64:
       return "i64";
     case t_base_type::TYPE_DOUBLE:
-      return "f64";
+      return "OrderedFloat<f64>";
     }
 
   } else if (type->is_enum()) {
@@ -462,11 +462,11 @@ string t_rs_generator::render_rs_type(t_type* type) {
   } else if (type->is_map()) {
     t_type* ktype = ((t_map*)type)->get_key_type();
     t_type* vtype = ((t_map*)type)->get_val_type();
-    return "HashMap<" + render_rs_type(ktype) + ", " + render_rs_type(vtype) + ">";
+    return "BTreeMap<" + render_rs_type(ktype) + ", " + render_rs_type(vtype) + ">";
 
   } else if (type->is_set()) {
     t_type* etype = ((t_set*)type)->get_elem_type();
-    return "HashSet<" + render_rs_type(etype) + ">";
+    return "BTreeSet<" + render_rs_type(etype) + ">";
 
   } else if (type->is_list()) {
     t_type* etype = ((t_list*)type)->get_elem_type();

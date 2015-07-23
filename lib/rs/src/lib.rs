@@ -1,4 +1,5 @@
 extern crate podio;
+extern crate ordered_float;
 
 #[macro_use]
 extern crate log;
@@ -9,6 +10,10 @@ use std::error::Error as StdError;
 pub use protocol::Protocol;
 pub use transport::Transport;
 pub use processor::Processor;
+
+pub mod rt {
+    pub use ordered_float::OrderedFloat;
+}
 
 pub mod protocol;
 pub mod transport;
