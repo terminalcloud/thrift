@@ -1,5 +1,5 @@
 #![allow(dead_code, non_camel_case_types)]
-use std::collections::{HashSet, HashMap};
+use std::collections::{BTreeSet, BTreeMap};
 
 strukt! {
     name = Simple,
@@ -11,7 +11,7 @@ strukt! {
 strukt! {
     name = DeeplyNested,
     fields = {
-        nested: HashSet<Vec<Vec<Vec<Vec<i32>>>>> => 6,
+        nested: BTreeSet<Vec<Vec<Vec<Vec<i32>>>>> => 6,
     }
 }
 
@@ -20,7 +20,7 @@ strukt! {
     fields = {
         other: DeeplyNested => 2,
         another: Simple => 3,
-        map: HashMap<i32, Vec<String>> => 4,
+        map: BTreeMap<i32, Vec<String>> => 4,
     }
 }
 
