@@ -39,8 +39,8 @@ macro_rules! service_processor {
             _ugh: ()
         }
 
-        $(strukt! { name = $siname, fields = { $($saname: $saty => $said,)* } }
-          strukt! { name = $soname, fields = { success: $srty => 0, $($sename: $sety => $seid,)* } }
+        $(strukt! { name = $siname, fields = { $($saname: Option<$saty> => $said,)* } }
+          strukt! { name = $soname, fields = { success: Option<$srty> => 0, $($sename: Option<$sety> => $seid,)* } }
           service_processor_error_enum! { $senname = [ $($sevname($sename: $sety => $seid),)*] })*
 
         impl<$($boundty: $bound),*> $name<$($boundty),*> {
@@ -211,7 +211,7 @@ macro_rules! strukt {
      fields = { $($fname:ident: $fty:ty => $id:expr,)+ }) => {
         #[derive(Debug, Clone, Default, Eq, PartialEq, PartialOrd, Ord)]
         pub struct $name {
-            $(pub $fname: Option<$fty>,)+
+            $(pub $fname: $fty,)+
         }
 
         impl $crate::protocol::ThriftTyped for $name {
@@ -228,9 +228,9 @@ macro_rules! strukt {
 
                 try!(protocol.write_struct_begin(transport, stringify!($name)));
 
-                $(if let Some(ref x) = self.$fname {
+                $(if $crate::protocol::Encode::should_encode(&self.$fname) {
                     try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
-                    try!($crate::protocol::Encode::encode(x, protocol, transport));
+                    try!($crate::protocol::Encode::encode(&self.$fname, protocol, transport));
                     try!(protocol.write_field_end(transport));
                 })*
 

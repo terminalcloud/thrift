@@ -64,6 +64,13 @@ impl<K: Encode + Ord, V: Encode> Encode for BTreeMap<K, V> {
 }
 
 impl<X: Encode> Encode for Option<X> {
+    fn should_encode(&self) -> bool {
+        match *self {
+            Some(ref v) => v.should_encode(),
+            None => false,
+        }
+    }
+
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
         self.as_ref().map(|this| this.encode(protocol, transport)).unwrap_or(Ok(()))
@@ -87,6 +94,10 @@ impl Encode for Vec<u8> {
 }
 
 impl Encode for () {
+    fn should_encode(&self) -> bool {
+        false
+    }
+
     fn encode<P, T>(&self, _: &mut P, _: &mut T) -> Result<()>
     where P: Protocol, T: Transport { Ok(()) }
 }

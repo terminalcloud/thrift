@@ -136,6 +136,8 @@ pub trait ThriftTyped {
 pub trait Encode: ThriftTyped {
     fn encode<P, T>(&self, &mut P, &mut T) -> Result<()>
     where P: Protocol, T: Transport;
+
+    fn should_encode(&self) -> bool { true }
 }
 
 pub trait Decode: ThriftTyped + Default {
