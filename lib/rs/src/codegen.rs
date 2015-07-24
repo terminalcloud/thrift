@@ -184,10 +184,17 @@ macro_rules! service_client_methods {
 
 #[macro_export]
 macro_rules! service_client_methods_translate_result {
-    ($result:expr, $enname:ident = []) => {
-        // TODO investigate this unwrap
-        $result.success.unwrap()
-    };
+    ($result:expr, $enname:ident = []) => {{
+        use $crate::protocol::Encode;
+
+        let result = $result;
+
+        if result.success.should_encode() {
+            result.success.unwrap()
+        } else {
+            result.success.unwrap_or_default()
+        }
+    }};
     ($result:expr, $enname:ident = [$($evname:ident($ename:ident: $ety:ty => $eid:expr),)*]) => {{
         let result = $result;
         if let Some(s) = result.success {

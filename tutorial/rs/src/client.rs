@@ -47,7 +47,6 @@ pub fn main() {
         comment: None
     };
 
-    println!("{:?}", client.calculate(1, work.clone()).unwrap());
     let error = client.calculate(1, work).unwrap().err().unwrap();
     println!("Error! {:?}", error);
 
