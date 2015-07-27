@@ -407,8 +407,14 @@ void t_rs_generator::generate_service_method_arglist(const vector<t_field*>& fie
     vector<t_field*>::const_iterator field_iter;
     for (field_iter = fields.begin(); field_iter != fields.end(); ++field_iter) {
         t_field* tfield = *field_iter;
+
+        string type = render_rs_type(tfield->get_type());
+        if (tfield->get_req() == t_field::T_OPTIONAL) {
+          type = "Option<" + type + ">";
+        }
+
         indent(f_mod_) << to_field_name(tfield->get_name())
-            << ": " << render_rs_type(tfield->get_type())
+            << ": " << type
             << " => " << tfield->get_key() << ",\n";
     }
 }
