@@ -164,36 +164,36 @@ fn test_struct_with_many_fields() {
     assert_eq!(instance.three[0].key, second.three[0].key);
 }
 
-// #[test]
-// fn test_struct_with_optional_field_as_some() {
-//     let instance = Optional { this: Some(7489) };
-//     let mut protocol = encode(&instance);
-//
-//     assert_eq!(protocol.log(), &[
-//         Struct(Begin(String::from("Optional"))),
-//         Field(Begin((String::from("this"), Type::I64, 2))),
-//         Prim(I64(7489)),
-//         Field(End),
-//         field_end(),
-//         Struct(End)
-//     ]);
-//
-//     let second = decode::<Optional>(&mut protocol);
-//     assert_eq!(instance.this, second.this);
-// }
-//
-// #[test]
-// fn test_struct_with_optional_field_as_none() {
-//     let instance = Optional { this: None };
-//     let mut protocol = encode(&instance);
-//
-//     assert_eq!(protocol.log(), &[
-//         Struct(Begin(String::from("Optional"))),
-//         field_end(),
-//         Struct(End)
-//     ]);
-//
-//     let second = decode::<Optional>(&mut protocol);
-//     assert_eq!(instance.this, second.this);
-// }
+#[test]
+fn test_struct_with_optional_field_as_some() {
+    let instance = Optional { this: Some(7489) };
+    let mut protocol = encode(&instance);
+
+    assert_eq!(protocol.log(), &[
+        Struct(Begin(String::from("Optional"))),
+        Field(Begin((String::from("this"), Type::I64, 2))),
+        Prim(I64(7489)),
+        Field(End),
+        field_end(),
+        Struct(End)
+    ]);
+
+    let second = decode::<Optional>(&mut protocol);
+    assert_eq!(instance.this, second.this);
+}
+
+#[test]
+fn test_struct_with_optional_field_as_none() {
+    let instance = Optional { this: None };
+    let mut protocol = encode(&instance);
+
+    assert_eq!(protocol.log(), &[
+        Struct(Begin(String::from("Optional"))),
+        field_end(),
+        Struct(End)
+    ]);
+
+    let second = decode::<Optional>(&mut protocol);
+    assert_eq!(instance.this, second.this);
+}
 
