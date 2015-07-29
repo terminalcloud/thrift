@@ -33,6 +33,13 @@ strukt! {
      }
 }
 
+strukt! {
+    name = Optional,
+    fields = {
+        this: Option<i64> => 2,
+    }
+}
+
 enom! {
     name = Operation,
     values = [
