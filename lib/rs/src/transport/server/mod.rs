@@ -21,6 +21,8 @@ use std::io;
 use std::net::{TcpListener, TcpStream};
 use super::Transport;
 
+impl Transport for TcpStream {}
+
 pub trait TransportServer {
     type Transport: Transport;
 
