@@ -24,6 +24,7 @@ extern crate bufstream;
 use std::net::TcpStream;
 use bufstream::BufStream;
 use thrift::protocol::binary_protocol::BinaryProtocol;
+use thrift::transport::RwTransport;
 use tutorial::CalculatorClient;
 
 mod tutorial;
@@ -43,7 +44,7 @@ pub fn main() {
     };
 
     let mut client = tutorial::CalculatorClient::new(
-        BinaryProtocol, BufStream::new(TcpStream::connect("127.0.0.1:9090").unwrap()));
+        BinaryProtocol, RwTransport(BufStream::new(TcpStream::connect("127.0.0.1:9090").unwrap())));
 
     println!("Rust Thrift benchmark");
     println!("Running {} iterations", iterations);

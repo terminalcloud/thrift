@@ -32,6 +32,7 @@ use std::collections::HashMap;
 use thrift::protocol::binary_protocol::BinaryProtocol;
 use thrift::server::SimpleServer;
 use thrift::transport::server::TransportServer;
+use thrift::transport::RwTransport;
 
 use tutorial::*;
 use shared::*;
@@ -95,10 +96,10 @@ impl<'a> SharedService for &'a CalculatorHandler {
 struct BufferServer(TcpListener);
 
 impl TransportServer for BufferServer {
-     type Transport = BufStream<TcpStream>;
+     type Transport = RwTransport<BufStream<TcpStream>>;
 
-     fn accept(&self) -> io::Result<BufStream<TcpStream>> {
-        self.0.accept().map(|res| BufStream::new(res.0))
+     fn accept(&self) -> io::Result<Self::Transport> {
+        self.0.accept().map(|res| RwTransport(BufStream::new(res.0)))
      }
 }
 

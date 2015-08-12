@@ -24,12 +24,13 @@ extern crate bufstream;
 use std::net::TcpStream;
 use bufstream::BufStream;
 use thrift::protocol::binary_protocol::BinaryProtocol;
+use thrift::transport::RwTransport;
 
 mod tutorial;
 mod shared;
 
 pub fn main() {
-    let stream = BufStream::new(TcpStream::connect("127.0.0.1:9090").unwrap());
+    let stream = RwTransport(BufStream::new(TcpStream::connect("127.0.0.1:9090").unwrap()));
     let mut client = tutorial::CalculatorClient::new(BinaryProtocol, stream);
 
     // Ping
