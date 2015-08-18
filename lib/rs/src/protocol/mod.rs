@@ -413,7 +413,7 @@ impl<'a, P: ?Sized> Protocol for &'a mut P where P: Protocol {
     }
 }
 
-pub trait FromNum {
+pub trait FromNum: Sized {
     fn from_num(num: i32) -> Option<Self>;
 }
 
