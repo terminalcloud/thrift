@@ -8,13 +8,13 @@ type VirtualProxy = for<'e> Proxy<VirtualEncodeObject<'e>>;
 
 #[derive(Default)]
 pub struct Proxies {
-    proxies: Vec<Box<VirtualProxy>>
+    proxies: Vec<Box<for<'e> Proxy<VirtualEncodeObject<'e>> + Send + Sync>>
 }
 
 impl Proxies {
     pub fn new() -> Proxies { Proxies::default() }
 
-    pub fn proxy<P: for<'e> Proxy<VirtualEncodeObject<'e>> + 'static>(&mut self, proxy: P) {
+    pub fn proxy<P: for<'e> Proxy<VirtualEncodeObject<'e>> + Send + Sync + 'static>(&mut self, proxy: P) {
         self.proxies.push(Box::new(proxy));
     }
 }

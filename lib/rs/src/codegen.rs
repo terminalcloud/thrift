@@ -50,7 +50,7 @@ macro_rules! service_processor {
 
             /// Add a `Proxy` to be used for all incoming messages.
             pub fn proxy<P>(&mut self, proxy: P)
-            where P: 'static + for<'e> $crate::proxy::Proxy<$crate::virt::VirtualEncodeObject<'e>> {
+            where P: 'static + Send + Sync + for<'e> $crate::proxy::Proxy<$crate::virt::VirtualEncodeObject<'e>> {
                 self.proxies.proxy(proxy)
             }
 
