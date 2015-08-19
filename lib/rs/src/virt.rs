@@ -287,177 +287,177 @@ impl<P, T> VirtualProtocol<T> for P where P: Protocol, T: Transport {
 impl<'p> Protocol for VirtualProtocolObject<'p> {
     fn write_message_begin<T: Transport>(&mut self, transport: &mut T, name: &str,
                            message_type: MessageType, sequence_id: i32) -> Result<()> {
-        self.virt_write_message_begin(transport, name, message_type, sequence_id)
+        (*self).virt_write_message_begin(transport, name, message_type, sequence_id)
     }
 
     fn write_message_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_message_end(transport)
+        (*self).virt_write_message_end(transport)
     }
 
     fn write_struct_begin<T: Transport>(&mut self, transport: &mut T, name: &str) -> Result<()> {
-        self.virt_write_struct_begin(transport, name)
+        (*self).virt_write_struct_begin(transport, name)
     }
 
     fn write_struct_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_struct_end(transport)
+        (*self).virt_write_struct_end(transport)
     }
 
     fn write_field_begin<T: Transport>(&mut self, transport: &mut T, name: &str,
                          field_type: Type, field_id: i16) -> Result<()> {
-        self.virt_write_field_begin(transport, name, field_type, field_id)
+        (*self).virt_write_field_begin(transport, name, field_type, field_id)
     }
 
     fn write_field_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_field_end(transport)
+        (*self).virt_write_field_end(transport)
     }
 
     fn write_field_stop<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_field_stop(transport)
+        (*self).virt_write_field_stop(transport)
     }
 
     fn write_map_begin<T: Transport>(&mut self, transport: &mut T, key_type: Type,
                        value_type: Type, size: usize) -> Result<()> {
-        self.virt_write_map_begin(transport, key_type, value_type, size)
+        (*self).virt_write_map_begin(transport, key_type, value_type, size)
     }
 
     fn write_map_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_map_end(transport)
+        (*self).virt_write_map_end(transport)
     }
 
     fn write_list_begin<T: Transport>(&mut self, transport: &mut T, elem_type: Type, size: usize) -> Result<()> {
-        self.virt_write_list_begin(transport, elem_type, size)
+        (*self).virt_write_list_begin(transport, elem_type, size)
     }
 
     fn write_list_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_list_end(transport)
+        (*self).virt_write_list_end(transport)
     }
 
     fn write_set_begin<T: Transport>(&mut self, transport: &mut T, elem_type: Type, size: usize) -> Result<()> {
-        self.virt_write_set_begin(transport, elem_type, size)
+        (*self).virt_write_set_begin(transport, elem_type, size)
     }
 
     fn write_set_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_write_set_end(transport)
+        (*self).virt_write_set_end(transport)
     }
 
     fn write_bool<T: Transport>(&mut self, transport: &mut T, value: bool) -> Result<()> {
-        self.virt_write_bool(transport, value)
+        (*self).virt_write_bool(transport, value)
     }
 
     fn write_byte<T: Transport>(&mut self, transport: &mut T, value: i8) -> Result<()> {
-         self.virt_write_byte(transport, value)
+         (*self).virt_write_byte(transport, value)
     }
 
     fn write_i16<T: Transport>(&mut self, transport: &mut T, value: i16) -> Result<()> {
-        self.virt_write_i16(transport, value)
+        (*self).virt_write_i16(transport, value)
     }
 
     fn write_i32<T: Transport>(&mut self, transport: &mut T, value: i32) -> Result<()> {
-        self.virt_write_i32(transport, value)
+        (*self).virt_write_i32(transport, value)
     }
 
     fn write_i64<T: Transport>(&mut self, transport: &mut T, value: i64) -> Result<()> {
-        self.virt_write_i64(transport, value)
+        (*self).virt_write_i64(transport, value)
     }
 
     fn write_double<T: Transport>(&mut self, transport: &mut T, value: f64) -> Result<()> {
-        self.virt_write_double(transport, value)
+        (*self).virt_write_double(transport, value)
     }
 
     fn write_str<T: Transport>(&mut self, transport: &mut T, value: &str) -> Result<()> {
-        self.virt_write_str(transport, value)
+        (*self).virt_write_str(transport, value)
     }
 
     fn write_string<T: Transport>(&mut self, transport: &mut T, value: &String) -> Result<()> {
-        self.virt_write_string(transport, value)
+        (*self).virt_write_string(transport, value)
     }
 
     fn write_binary<T: Transport>(&mut self, transport: &mut T, value: &[u8]) -> Result<()> {
-        self.virt_write_binary(transport, value)
+        (*self).virt_write_binary(transport, value)
     }
 
     fn read_message_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(String, MessageType, i32)> {
-        self.virt_read_message_begin(transport)
+        (*self).virt_read_message_begin(transport)
     }
 
     fn read_message_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_message_end(transport)
+        (*self).virt_read_message_end(transport)
     }
 
     fn read_struct_begin<T: Transport>(&mut self, transport: &mut T) -> Result<String> {
-        self.virt_read_struct_begin(transport)
+        (*self).virt_read_struct_begin(transport)
     }
 
     fn read_struct_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_struct_end(transport)
+        (*self).virt_read_struct_end(transport)
     }
 
     fn read_field_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(String, Type, i16)> {
-        self.virt_read_field_begin(transport)
+        (*self).virt_read_field_begin(transport)
     }
 
     fn read_field_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_field_end(transport)
+        (*self).virt_read_field_end(transport)
     }
 
     fn read_map_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, Type, i32)> {
-        self.virt_read_map_begin(transport)
+        (*self).virt_read_map_begin(transport)
     }
 
     fn read_map_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_map_end(transport)
+        (*self).virt_read_map_end(transport)
     }
 
     fn read_list_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, i32)> {
-        self.virt_read_list_begin(transport)
+        (*self).virt_read_list_begin(transport)
     }
 
     fn read_list_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_list_end(transport)
+        (*self).virt_read_list_end(transport)
     }
 
     fn read_set_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, i32)> {
-        self.virt_read_set_begin(transport)
+        (*self).virt_read_set_begin(transport)
     }
 
     fn read_set_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
-        self.virt_read_set_end(transport)
+        (*self).virt_read_set_end(transport)
     }
 
     fn read_bool<T: Transport>(&mut self, transport: &mut T) -> Result<bool> {
-        self.virt_read_bool(transport)
+        (*self).virt_read_bool(transport)
     }
 
     fn read_byte<T: Transport>(&mut self, transport: &mut T) -> Result<i8> {
-        self.virt_read_byte(transport)
+        (*self).virt_read_byte(transport)
     }
 
     fn read_i16<T: Transport>(&mut self, transport: &mut T) -> Result<i16> {
-        self.virt_read_i16(transport)
+        (*self).virt_read_i16(transport)
     }
 
     fn read_i32<T: Transport>(&mut self, transport: &mut T) -> Result<i32> {
-        self.virt_read_i32(transport)
+        (*self).virt_read_i32(transport)
     }
 
     fn read_i64<T: Transport>(&mut self, transport: &mut T) -> Result<i64> {
-        self.virt_read_i64(transport)
+        (*self).virt_read_i64(transport)
     }
 
     fn read_double<T: Transport>(&mut self, transport: &mut T) -> Result<f64> {
-        self.virt_read_double(transport)
+        (*self).virt_read_double(transport)
     }
 
     fn read_string<T: Transport>(&mut self, transport: &mut T) -> Result<String> {
-        self.virt_read_string(transport)
+        (*self).virt_read_string(transport)
     }
 
     fn read_binary<T: Transport>(&mut self, transport: &mut T) -> Result<Vec<u8>> {
-        self.virt_read_binary(transport)
+        (*self).virt_read_binary(transport)
     }
 
     fn skip<T: Transport>(&mut self, transport: &mut T, type_: Type) -> Result<()> {
-        self.virt_skip(transport, type_)
+        (*self).virt_skip(transport, type_)
     }
 }
 
