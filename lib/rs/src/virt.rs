@@ -25,7 +25,7 @@ impl<'e> Encode for VirtualEncodeObject<'e> {
     fn encode<'p, 't, P1, T1>(&self, mut protocol: &'p mut P1, mut transport: &'t mut T1) -> Result<()>
     where P1: Protocol, T1: Transport {
         let protocol: VirtualProtocolObject<'p> = protocol;
-        self.virt_encode(protocol, &mut transport)
+        (*self).virt_encode(protocol, &mut transport)
     }
 }
 
