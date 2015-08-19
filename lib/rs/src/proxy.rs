@@ -13,6 +13,10 @@ pub struct Proxies {
 
 impl Proxies {
     pub fn new() -> Proxies { Proxies::default() }
+
+    pub fn proxy<P: for<'e> Proxy<VirtualEncodeObject<'e>> + 'static>(&mut self, proxy: P) {
+        self.proxies.push(Box::new(proxy));
+    }
 }
 
 impl<E: Encode> Proxy<E> for Proxies {
@@ -31,6 +35,17 @@ pub trait Proxy<E: Encode> {
 pub struct SimpleProxy<PF, TS> {
     protocol_factory: PF,
     transport_server: TS
+}
+
+impl<PF, TS> SimpleProxy<PF, TS> {
+    /// Create a new `SimpleProxy` that will replay messages over the given
+    /// server transports using the given protocols.
+    pub fn new(factory: PF, server: TS) -> SimpleProxy<PF, TS> {
+        SimpleProxy {
+            protocol_factory: factory,
+            transport_server: server
+        }
+    }
 }
 
 impl<E, PF, TS> Proxy<E> for SimpleProxy<PF, TS>

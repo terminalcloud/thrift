@@ -48,6 +48,12 @@ macro_rules! service_processor {
                 $name { $($fname: $fname,)* proxies: Default::default() }
             }
 
+            /// Add a `Proxy` to be used for all incoming messages.
+            pub fn proxy<P>(&mut self, proxy: P)
+            where P: 'static + for<'e> $crate::proxy::Proxy<$crate::virt::VirtualEncodeObject<'e>> {
+                self.proxies.proxy(proxy)
+            }
+
             pub fn dispatch<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
                                                                        name: &str, ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
                 match name {
