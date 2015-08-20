@@ -40,6 +40,8 @@ impl io::Read for MockTransport {
     }
 }
 
+impl Transport for MockTransport {}
+
 #[derive(Debug, Default, Clone)]
 pub struct MockProtocol {
     log: Vec<ProtocolAction>

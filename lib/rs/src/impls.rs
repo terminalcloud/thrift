@@ -3,24 +3,26 @@ pub use {Protocol, Transport, Result, Error};
 
 pub use std::collections::{BTreeSet, BTreeMap};
 
-impl ThriftTyped for bool { fn typ() -> Type { Type::Bool } }
-impl ThriftTyped for i8  { fn typ() -> Type { Type::Byte } }
-impl ThriftTyped for i16 { fn typ() -> Type { Type::I16 } }
-impl ThriftTyped for i32 { fn typ() -> Type { Type::I32 } }
-impl ThriftTyped for i64 { fn typ() -> Type { Type::I64 } }
-impl ThriftTyped for f64 { fn typ() -> Type { Type::Double } }
-impl ThriftTyped for () { fn typ() -> Type { Type::Void } }
-impl ThriftTyped for String { fn typ() -> Type { Type::String } }
-impl ThriftTyped for Vec<u8> { fn typ() -> Type { Type::String } }
-impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ() -> Type { Type::List } }
-impl<T: ThriftTyped> ThriftTyped for Option<T> { fn typ() -> Type { T::typ() } }
-impl<T: ThriftTyped> ThriftTyped for BTreeSet<T> { fn typ() -> Type { Type::Set } }
-impl<K: ThriftTyped, V: ThriftTyped> ThriftTyped for BTreeMap<K, V> { fn typ() -> Type { Type::Map } }
+use protocol::helpers::typ;
 
-impl<X: Encode> Encode for Vec<X> {
+impl ThriftTyped for bool { fn typ(&self) -> Type { Type::Bool } }
+impl ThriftTyped for i8  { fn typ(&self) -> Type { Type::Byte } }
+impl ThriftTyped for i16 { fn typ(&self) -> Type { Type::I16 } }
+impl ThriftTyped for i32 { fn typ(&self) -> Type { Type::I32 } }
+impl ThriftTyped for i64 { fn typ(&self) -> Type { Type::I64 } }
+impl ThriftTyped for f64 { fn typ(&self) -> Type { Type::Double } }
+impl ThriftTyped for () { fn typ(&self) -> Type { Type::Void } }
+impl ThriftTyped for String { fn typ(&self) -> Type { Type::String } }
+impl ThriftTyped for Vec<u8> { fn typ(&self) -> Type { Type::String } }
+impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ(&self) -> Type { Type::List } }
+impl<T: ThriftTyped + Default> ThriftTyped for Option<T> { fn typ(&self) -> Type { typ::<T>() } }
+impl<T: ThriftTyped> ThriftTyped for BTreeSet<T> { fn typ(&self) -> Type { Type::Set } }
+impl<K: ThriftTyped, V: ThriftTyped> ThriftTyped for BTreeMap<K, V> { fn typ(&self) -> Type { Type::Map } }
+
+impl<X: Encode + Default> Encode for Vec<X> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        try!(protocol.write_list_begin(transport, X::typ(), self.len()));
+        try!(protocol.write_list_begin(transport, typ::<X>(), self.len()));
 
         for el in self {
             try!(el.encode(protocol, transport));
@@ -32,10 +34,10 @@ impl<X: Encode> Encode for Vec<X> {
     }
 }
 
-impl<X: Encode + Ord> Encode for BTreeSet<X> {
+impl<X: Encode + Ord + Default> Encode for BTreeSet<X> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        try!(protocol.write_set_begin(transport, X::typ(), self.len()));
+        try!(protocol.write_set_begin(transport, typ::<X>(), self.len()));
 
         for el in self {
             try!(el.encode(protocol, transport));
@@ -47,10 +49,10 @@ impl<X: Encode + Ord> Encode for BTreeSet<X> {
     }
 }
 
-impl<K: Encode + Ord, V: Encode> Encode for BTreeMap<K, V> {
+impl<K: Encode + Ord + Default, V: Encode + Default> Encode for BTreeMap<K, V> {
     fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        try!(protocol.write_map_begin(transport, K::typ(), V::typ(), self.len()));
+        try!(protocol.write_map_begin(transport, typ::<K>(), typ::<V>(), self.len()));
 
         for (k, v) in self.iter() {
             try!(k.encode(protocol, transport));
@@ -63,7 +65,7 @@ impl<K: Encode + Ord, V: Encode> Encode for BTreeMap<K, V> {
     }
 }
 
-impl<X: Encode> Encode for Option<X> {
+impl<X: Encode + Default> Encode for Option<X> {
     fn should_encode(&self) -> bool {
         match *self {
             Some(ref v) => v.should_encode(),
@@ -129,9 +131,9 @@ where D: Decode, P: Protocol, T: Transport {
 impl<X: Decode> Decode for Vec<X> {
     fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        let (typ, len) = try!(protocol.read_list_begin(transport));
+        let (type_, len) = try!(protocol.read_list_begin(transport));
 
-        if typ == X::typ() {
+        if type_ == typ::<X>() {
             self.reserve(len as usize);
             for _ in 0..len { self.push(try!(decode(protocol, transport))); }
             try!(protocol.read_list_end(transport));
@@ -145,9 +147,9 @@ impl<X: Decode> Decode for Vec<X> {
 impl<X: Decode + Ord> Decode for BTreeSet<X> {
     fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
     where P: Protocol, T: Transport {
-        let (typ, len) = try!(protocol.read_set_begin(transport));
+        let (type_, len) = try!(protocol.read_set_begin(transport));
 
-        if typ == X::typ() {
+        if type_ == typ::<X>() {
             for _ in 0..len { self.insert(try!(decode(protocol, transport))); }
             try!(protocol.read_set_end(transport));
             Ok(())
@@ -162,7 +164,7 @@ impl<K: Decode + Ord, V: Decode> Decode for BTreeMap<K, V> {
     where P: Protocol, T: Transport {
         let (ktyp, vtyp, len) = try!(protocol.read_map_begin(transport));
 
-        if ktyp == K::typ() && vtyp == V::typ() {
+        if ktyp == typ::<K>() && vtyp == typ::<V>() {
             for _ in 0..len {
                 let key = try!(decode(protocol, transport));
                 let value = try!(decode(protocol, transport));

@@ -17,11 +17,32 @@
  * under the License.
  */
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 
 pub mod server;
 
 pub trait Transport: Write + Read { }
 
-impl<T: Write + Read> Transport for T { }
+impl<'t, T> Transport for &'t mut T where T: Transport {}
+impl<'t> Transport for &'t mut Transport {}
+
+pub struct RwTransport<Rw>(pub Rw);
+
+impl<R: Read> Read for RwTransport<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.0.read(buf)
+    }
+}
+
+impl<W: Write> Write for RwTransport<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
+}
+
+impl<Rw: Read + Write> Transport for RwTransport<Rw> { }
 

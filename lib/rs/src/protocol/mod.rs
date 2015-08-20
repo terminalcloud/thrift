@@ -130,7 +130,7 @@ impl MessageType {
 }
 
 pub trait ThriftTyped {
-    fn typ() -> Type;
+    fn typ(&self) -> Type;
 }
 
 pub trait Encode: ThriftTyped {
@@ -223,14 +223,208 @@ pub trait Protocol {
     fn skip<T: Transport>(&mut self, transport: &mut T, type_: Type) -> Result<()>;
 }
 
-pub trait FromNum {
+impl<'a, T: ?Sized> ThriftTyped for &'a T where T: ThriftTyped {
+    fn typ(&self) -> Type { <T as ThriftTyped>::typ(self) }
+}
+
+impl<'a, E: ?Sized> Encode for &'a E where E: Encode {
+    fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        <E as Encode>::encode(self, protocol, transport)
+    }
+
+    fn should_encode(&self) -> bool { <E as Encode>::should_encode(self) }
+}
+
+impl<'a, P: ?Sized> Protocol for &'a mut P where P: Protocol {
+    fn write_message_begin<T: Transport>(&mut self, transport: &mut T, name: &str,
+                           message_type: MessageType, sequence_id: i32) -> Result<()> {
+        <P as Protocol>::write_message_begin(self, transport, name, message_type, sequence_id)
+    }
+
+    fn write_message_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_message_end(self, transport)
+    }
+
+    fn write_struct_begin<T: Transport>(&mut self, transport: &mut T, name: &str) -> Result<()> {
+        <P as Protocol>::write_struct_begin(self, transport, name)
+    }
+
+    fn write_struct_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_struct_end(self, transport)
+    }
+
+    fn write_field_begin<T: Transport>(&mut self, transport: &mut T, name: &str,
+                         field_type: Type, field_id: i16) -> Result<()> {
+        <P as Protocol>::write_field_begin(self, transport, name, field_type, field_id)
+    }
+
+    fn write_field_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_field_end(self, transport)
+    }
+
+    fn write_field_stop<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_field_stop(self, transport)
+    }
+
+    fn write_map_begin<T: Transport>(&mut self, transport: &mut T, key_type: Type,
+                       value_type: Type, size: usize) -> Result<()> {
+        <P as Protocol>::write_map_begin(self, transport, key_type, value_type, size)
+    }
+
+    fn write_map_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_map_end(self, transport)
+    }
+
+    fn write_list_begin<T: Transport>(&mut self, transport: &mut T, elem_type: Type, size: usize) -> Result<()> {
+        <P as Protocol>::write_list_begin(self, transport, elem_type, size)
+    }
+
+    fn write_list_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_list_end(self, transport)
+    }
+
+    fn write_set_begin<T: Transport>(&mut self, transport: &mut T, elem_type: Type, size: usize) -> Result<()> {
+        <P as Protocol>::write_set_begin(self, transport, elem_type, size)
+    }
+
+    fn write_set_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::write_set_end(self, transport)
+    }
+
+    fn write_bool<T: Transport>(&mut self, transport: &mut T, value: bool) -> Result<()> {
+        <P as Protocol>::write_bool(self, transport, value)
+    }
+
+    fn write_byte<T: Transport>(&mut self, transport: &mut T, value: i8) -> Result<()> {
+         <P as Protocol>::write_byte(self, transport, value)
+    }
+
+    fn write_i16<T: Transport>(&mut self, transport: &mut T, value: i16) -> Result<()> {
+        <P as Protocol>::write_i16(self, transport, value)
+    }
+
+    fn write_i32<T: Transport>(&mut self, transport: &mut T, value: i32) -> Result<()> {
+        <P as Protocol>::write_i32(self, transport, value)
+    }
+
+    fn write_i64<T: Transport>(&mut self, transport: &mut T, value: i64) -> Result<()> {
+        <P as Protocol>::write_i64(self, transport, value)
+    }
+
+    fn write_double<T: Transport>(&mut self, transport: &mut T, value: f64) -> Result<()> {
+        <P as Protocol>::write_double(self, transport, value)
+    }
+
+    fn write_str<T: Transport>(&mut self, transport: &mut T, value: &str) -> Result<()> {
+        <P as Protocol>::write_str(self, transport, value)
+    }
+
+    fn write_string<T: Transport>(&mut self, transport: &mut T, value: &String) -> Result<()> {
+        <P as Protocol>::write_string(self, transport, value)
+    }
+
+    fn write_binary<T: Transport>(&mut self, transport: &mut T, value: &[u8]) -> Result<()> {
+        <P as Protocol>::write_binary(self, transport, value)
+    }
+
+    fn read_message_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(String, MessageType, i32)> {
+        <P as Protocol>::read_message_begin(self, transport)
+    }
+
+    fn read_message_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_message_end(self, transport)
+    }
+
+    fn read_struct_begin<T: Transport>(&mut self, transport: &mut T) -> Result<String> {
+        <P as Protocol>::read_struct_begin(self, transport)
+    }
+
+    fn read_struct_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_struct_end(self, transport)
+    }
+
+    fn read_field_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(String, Type, i16)> {
+        <P as Protocol>::read_field_begin(self, transport)
+    }
+
+    fn read_field_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_field_end(self, transport)
+    }
+
+    fn read_map_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, Type, i32)> {
+        <P as Protocol>::read_map_begin(self, transport)
+    }
+
+    fn read_map_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_map_end(self, transport)
+    }
+
+    fn read_list_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, i32)> {
+        <P as Protocol>::read_list_begin(self, transport)
+    }
+
+    fn read_list_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_list_end(self, transport)
+    }
+
+    fn read_set_begin<T: Transport>(&mut self, transport: &mut T) -> Result<(Type, i32)> {
+        <P as Protocol>::read_set_begin(self, transport)
+    }
+
+    fn read_set_end<T: Transport>(&mut self, transport: &mut T) -> Result<()> {
+        <P as Protocol>::read_set_end(self, transport)
+    }
+
+    fn read_bool<T: Transport>(&mut self, transport: &mut T) -> Result<bool> {
+        <P as Protocol>::read_bool(self, transport)
+    }
+
+    fn read_byte<T: Transport>(&mut self, transport: &mut T) -> Result<i8> {
+        <P as Protocol>::read_byte(self, transport)
+    }
+
+    fn read_i16<T: Transport>(&mut self, transport: &mut T) -> Result<i16> {
+        <P as Protocol>::read_i16(self, transport)
+    }
+
+    fn read_i32<T: Transport>(&mut self, transport: &mut T) -> Result<i32> {
+        <P as Protocol>::read_i32(self, transport)
+    }
+
+    fn read_i64<T: Transport>(&mut self, transport: &mut T) -> Result<i64> {
+        <P as Protocol>::read_i64(self, transport)
+    }
+
+    fn read_double<T: Transport>(&mut self, transport: &mut T) -> Result<f64> {
+        <P as Protocol>::read_double(self, transport)
+    }
+
+    fn read_string<T: Transport>(&mut self, transport: &mut T) -> Result<String> {
+        <P as Protocol>::read_string(self, transport)
+    }
+
+    fn read_binary<T: Transport>(&mut self, transport: &mut T) -> Result<Vec<u8>> {
+        <P as Protocol>::read_binary(self, transport)
+    }
+
+    fn skip<T: Transport>(&mut self, transport: &mut T, type_: Type) -> Result<()> {
+        <P as Protocol>::skip(self, transport, type_)
+    }
+}
+
+pub trait FromNum: Sized {
     fn from_num(num: i32) -> Option<Self>;
 }
 
 pub mod helpers {
-    use protocol::{Protocol, Type, MessageType, FromNum, Decode, Encode, Error};
+    use protocol::{ThriftTyped, Protocol, Type, MessageType, FromNum, Decode, Encode, Error};
     use transport::Transport;
     use Result;
+
+    pub fn typ<T: ThriftTyped + Default>() -> Type {
+        T::default().typ()
+    }
 
     pub fn read_enum<F, T, P>(iprot: &mut P, transport: &mut T) -> Result<F>
     where F: FromNum, T: Transport, P: Protocol {

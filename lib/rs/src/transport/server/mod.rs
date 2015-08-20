@@ -21,6 +21,8 @@ use std::io;
 use std::net::{TcpListener, TcpStream};
 use super::Transport;
 
+impl Transport for TcpStream {}
+
 pub trait TransportServer {
     type Transport: Transport;
 
@@ -34,3 +36,11 @@ impl TransportServer for TcpListener {
         self.accept().map(|res| res.0)
     }
 }
+
+impl<F, T> TransportServer for F
+where F: Fn() -> io::Result<T>, T: Transport {
+    type Transport = T;
+
+    fn accept(&self) -> io::Result<T> { self() }
+}
+

@@ -1,3 +1,4 @@
+#![recursion_limit="1024"]
 extern crate podio;
 extern crate ordered_float;
 
@@ -19,6 +20,8 @@ pub mod protocol;
 pub mod transport;
 pub mod server;
 pub mod processor;
+pub mod proxy;
+pub mod virt;
 
 #[macro_use]
 mod codegen;

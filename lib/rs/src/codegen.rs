@@ -36,7 +36,7 @@ macro_rules! service_processor {
      fields = [$($fname:ident: $fty:ty,)*]) => {
         pub struct $name<$($boundty: $bound),*> {
             $($fname: $fty,)*
-            _ugh: ()
+            proxies: $crate::proxy::Proxies
         }
 
         $(strukt! { name = $siname, fields = { $($saname: Option<$saty> => $said,)* } }
@@ -45,7 +45,13 @@ macro_rules! service_processor {
 
         impl<$($boundty: $bound),*> $name<$($boundty),*> {
             pub fn new($($fname: $fty),*) -> Self {
-                $name { $($fname: $fname,)* _ugh: () }
+                $name { $($fname: $fname,)* proxies: Default::default() }
+            }
+
+            /// Add a `Proxy` to be used for all incoming messages.
+            pub fn proxy<P>(&mut self, proxy: P)
+            where P: 'static + Send + Sync + for<'e> $crate::proxy::Proxy<$crate::virt::VirtualEncodeObject<'e>> {
+                self.proxies.proxy(proxy)
             }
 
             pub fn dispatch<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
@@ -99,11 +105,15 @@ macro_rules! service_processor_methods {
     (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty => $enname:ident = [$($evname:ident($ename:ident: $ety:ty => $eid:expr),)*] ($rrty:ty),)*]) => {
         $(fn $mname<P: $crate::Protocol, T: $crate::Transport>(&self, prot: &mut P, transport: &mut T,
                                                                ty: $crate::protocol::MessageType, id: i32) -> $crate::Result<()> {
+            use $crate::proxy::Proxy;
+
             static MNAME: &'static str = stringify!($mname);
 
             let mut args = $iname::default();
             try!($crate::protocol::helpers::receive_body(prot, transport, MNAME,
                                                          &mut args, MNAME, ty, id));
+
+            self.proxies.proxy(ty, MNAME, id, &args);
 
             // TODO: Further investigate this unwrap.
             let result = self.$fname.$mname($(args.$aname.unwrap()),*);
@@ -222,7 +232,7 @@ macro_rules! strukt {
         }
 
         impl $crate::protocol::ThriftTyped for $name {
-            fn typ() -> $crate::protocol::Type { $crate::protocol::Type::Struct }
+            fn typ(&self) -> $crate::protocol::Type { $crate::protocol::Type::Struct }
         }
 
         impl $crate::protocol::Encode for $name {
@@ -236,7 +246,8 @@ macro_rules! strukt {
                 try!(protocol.write_struct_begin(transport, stringify!($name)));
 
                 $(if $crate::protocol::Encode::should_encode(&self.$fname) {
-                    try!(protocol.write_field_begin(transport, stringify!($fname), <$fty as ThriftTyped>::typ(), $id));
+                    try!(protocol.write_field_begin(transport, stringify!($fname),
+                                                    $crate::protocol::helpers::typ::<$fty>(), $id));
                     try!($crate::protocol::Encode::encode(&self.$fname, protocol, transport));
                     try!(protocol.write_field_end(transport));
                 })*
@@ -263,7 +274,7 @@ macro_rules! strukt {
 
                     if typ == $crate::protocol::Type::Stop {
                         break;
-                    } $(else if (typ, id) == (<$fty as ThriftTyped>::typ(), $id) {
+                    } $(else if (typ, id) == ($crate::protocol::helpers::typ::<$fty>(), $id) {
                         try!($crate::protocol::Decode::decode(&mut self.$fname, protocol, transport));
                     })* else {
                         try!(protocol.skip(transport, typ));
@@ -283,7 +294,7 @@ macro_rules! strukt {
         pub struct $name;
 
         impl $crate::protocol::ThriftTyped for $name {
-            fn typ() -> $crate::protocol::Type { $crate::protocol::Type::Struct }
+            fn typ(&self) -> $crate::protocol::Type { $crate::protocol::Type::Struct }
         }
 
         impl $crate::protocol::Encode for $name {
@@ -346,7 +357,7 @@ macro_rules! enom {
         }
 
         impl $crate::protocol::ThriftTyped for $name {
-            fn typ() -> $crate::protocol::Type { $crate::protocol::Type::I32 }
+            fn typ(&self) -> $crate::protocol::Type { $crate::protocol::Type::I32 }
         }
 
         impl $crate::protocol::Encode for $name {
