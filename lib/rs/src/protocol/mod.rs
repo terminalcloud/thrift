@@ -90,6 +90,49 @@ pub enum Type {
     List = 0x0f
 }
 
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(match *self {
+            Type::Stop => "Stop",
+            Type::Void => "Void",
+            Type::Bool => "Bool",
+            Type::Byte => "Byte",
+            Type::Double => "Double",
+            Type::I16 => "I16",
+            Type::I32 => "I32",
+            Type::I64 => "I64",
+            Type::String => "String",
+            Type::Struct => "Struct",
+            Type::Map => "Map",
+            Type::Set => "Set",
+            Type::List => "List"
+        })
+    }
+}
+
+impl ::std::str::FromStr for Type {
+    type Err = ();
+
+    fn from_str(string: &str) -> ::std::result::Result<Type, ()> {
+        Ok(match string {
+            "Stop" => Type::Stop,
+            "Void" => Type::Void,
+            "Bool" => Type::Bool,
+            "Byte" => Type::Byte,
+            "Double" => Type::Double,
+            "I16" => Type::I16,
+            "I32" => Type::I32,
+            "I64" => Type::I64,
+            "String" => Type::String,
+            "Struct" => Type::Struct,
+            "Map" => Type::Map,
+            "Set" => Type::Set,
+            "List" => Type::List,
+            _ => return Err(())
+        })
+    }
+}
+
 impl Type {
     pub fn from_num(num: u64) -> Option<Type> {
         match num {
@@ -116,6 +159,29 @@ pub enum MessageType {
     Call = 0x01,
     Reply = 0x02,
     Exception = 0x03,
+}
+
+impl fmt::Display for MessageType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(match *self {
+            MessageType::Call => "Call",
+            MessageType::Reply => "Reply",
+            MessageType::Exception => "Exception"
+        })
+    }
+}
+
+impl ::std::str::FromStr for MessageType {
+    type Err = ();
+
+    fn from_str(string: &str) -> ::std::result::Result<MessageType, ()> {
+        Ok(match string {
+            "Call" => MessageType::Call,
+            "Reply" => MessageType::Reply,
+            "Exception" => MessageType::Exception,
+            _ => return Err(())
+        })
+    }
 }
 
 impl MessageType {
