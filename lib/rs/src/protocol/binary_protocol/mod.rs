@@ -264,7 +264,7 @@ impl Protocol for BinaryProtocol {
 
     fn read_binary<T: Transport>(&mut self, transport: &mut T) -> Result<Vec<u8>> {
         let len = try!(self.read_i32(transport)) as usize;
-        Ok(try!(transport.read_exact(len)))
+        Ok(try!(ReadPodExt::read_exact(transport, len)))
     }
 
     fn skip<T: Transport>(&mut self, transport: &mut T, type_: Type) -> Result<()> {
