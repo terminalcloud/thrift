@@ -1,6 +1,7 @@
 #![recursion_limit="1024"]
 extern crate podio;
 extern crate ordered_float;
+extern crate byteorder;
 
 #[macro_use]
 extern crate log;
