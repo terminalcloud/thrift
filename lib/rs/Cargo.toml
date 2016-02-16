@@ -13,4 +13,5 @@ license = "MIT"
 podio = "0.1"
 log = "0"
 ordered-float = "0"
+byteorder = "0.4.2"
 
