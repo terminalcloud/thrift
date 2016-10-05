@@ -4,6 +4,7 @@ pub use {Protocol, Transport, Result, Error};
 pub use std::collections::{BTreeSet, BTreeMap};
 
 use protocol::helpers::typ;
+use rt::OrderedFloat;
 
 impl ThriftTyped for bool { fn typ(&self) -> Type { Type::Bool } }
 impl ThriftTyped for i8  { fn typ(&self) -> Type { Type::Byte } }
@@ -14,6 +15,7 @@ impl ThriftTyped for f64 { fn typ(&self) -> Type { Type::Double } }
 impl ThriftTyped for () { fn typ(&self) -> Type { Type::Void } }
 impl ThriftTyped for String { fn typ(&self) -> Type { Type::String } }
 impl ThriftTyped for Vec<u8> { fn typ(&self) -> Type { Type::String } }
+impl ThriftTyped for OrderedFloat<f64> { fn typ(&self) -> Type { Type::Double } }
 impl<T: ThriftTyped> ThriftTyped for Vec<T> { fn typ(&self) -> Type { Type::List } }
 impl<T: ThriftTyped + Default> ThriftTyped for Option<T> { fn typ(&self) -> Type { typ::<T>() } }
 impl<T: ThriftTyped> ThriftTyped for BTreeSet<T> { fn typ(&self) -> Type { Type::Set } }
@@ -95,6 +97,15 @@ impl Encode for Vec<u8> {
     }
 }
 
+impl Encode for OrderedFloat<f64> {
+    fn encode<P, T>(&self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        let d = self.as_ref();
+        try!(protocol.write_double(transport, *d));
+        Ok(())
+    }
+}
+
 impl Encode for () {
     fn should_encode(&self) -> bool {
         false
@@ -126,6 +137,15 @@ where D: Decode, P: Protocol, T: Transport {
      let mut elem = D::default();
      try!(elem.decode(protocol, transport));
      Ok(elem)
+}
+
+impl Decode for OrderedFloat<f64> {
+    fn decode<P, T>(&mut self, protocol: &mut P, transport: &mut T) -> Result<()>
+    where P: Protocol, T: Transport {
+        let d = try!(protocol.read_double(transport));
+        *self = From::from(d);
+        Ok(())
+    }
 }
 
 impl<X: Decode> Decode for Vec<X> {
