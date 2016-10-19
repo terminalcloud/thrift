@@ -174,6 +174,8 @@ macro_rules! service_client {
 macro_rules! service_client_methods {
     (methods = [$($iname:ident -> $oname:ident = $fname:ident.$mname:ident($($aname:ident: $aty:ty => $aid:expr,)*) -> $rty:ty => $enname:ident = [$($evname:ident($ename:ident: $ety:ty => $eid:expr),)*] ($rrty:ty),)*]) => {
         $(pub fn $mname(&mut self, $($aname: $aty,)*) -> $crate::Result<$rrty> {
+            #[allow(unused_imports)]
+            use $crate::protocol::Decode;
             static MNAME: &'static str = stringify!($mname);
 
             let mut args = $iname::default();
@@ -182,8 +184,21 @@ macro_rules! service_client_methods {
                                                  MNAME, $crate::protocol::MessageType::Call, &mut args, 0));
 
             let mut result = $oname::default();
-            try!($crate::protocol::helpers::receive(&mut self.protocol, &mut self.transport,
-                                                    MNAME, &mut result));
+            let (name, ty, id) = try!(self.protocol.read_message_begin(&mut self.transport));
+            if ty == $crate::protocol::MessageType::Exception {
+                // receive exception in ename, but use id to identify which one
+                // println!("name:{}, ty:{}, id:{}", name, ty, id);
+                match id + 1 {
+                    $( $eid => { let mut arg: $ety = Default::default();
+                                 try!(arg.decode(&mut self.protocol, &mut self.transport));
+                                 try!(self.protocol.read_message_end(&mut self.transport));
+                                 result.$ename = Some(arg); } ),*
+                    _ => return Err($crate::Error::from($crate::protocol::Error::ProtocolViolation))
+                }
+            } else {
+                try!($crate::protocol::helpers::receive_body(&mut self.protocol, &mut self.transport,
+                                                             MNAME, &mut result, &name, ty, id));
+            }
 
             let result = service_client_methods_translate_result!(
                 result, $enname = [$($evname($ename: $ety => $eid),)*]);
