@@ -22,7 +22,7 @@ use std::thread;
 
 use transport::server::TransportServer;
 use transport::Transport;
-use protocol::{Protocol, ProtocolFactory};
+use protocol::ProtocolFactory;
 use processor::Processor;
 
 pub struct ThreadedServer<P, PF, TS> {
@@ -58,7 +58,7 @@ where P: Processor<PF::Protocol, TS::Transport> + Send + Sync + 'static,
 
         let (supervisor_tx, supervisor_rx) = mpsc::channel();
 
-        for _ in (0..threads) {
+        for _ in 0..threads {
             self.spawn_with_supervisor(supervisor_tx.clone());
         }
 
